@@ -1,0 +1,56 @@
+[Unit]
+Description=Code Server for %i
+After=network.target nginx-proxy.service
+Wants=code-server.socket
+Requires=code-server.socket
+
+[Service]
+Type=exec
+User=%i
+Group=%i
+Environment="HOME=/home/%i"
+Environment="SHELL=/bin/bash"
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
+Environment="XDG_RUNTIME_DIR=/run/user/%U"
+Environment="DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%U/bus"
+
+# Конфиг code-server
+Environment="PASSWORD_HASH=%PASSWORD_HASH%"
+Environment="CODESERVER_PORT=%CODESERVER_PORT%"
+
+# Каталоги для конфигурации
+Environment="CONFIG_DIR=/home/%i/.config/code-server"
+Environment="DATA_DIR=/home/%i/.local/share/code-server"
+Environment="EXTENSIONS_DIR=/home/%i/.local/share/code-server/extensions"
+
+ExecStartPre=/bin/mkdir -p ${CONFIG_DIR} ${DATA_DIR} ${EXTENSIONS_DIR}
+ExecStartPre=/bin/chown -R %i:%i /home/%i/.config/code-server /home/%i/.local/share/code-server
+
+# Основная команда запуска
+ExecStart=/usr/bin/code-server \
+  --bind-addr unix:/run/user/%U/code-server.sock \
+  --config ${CONFIG_DIR}/config.yaml \
+  --user-data-dir ${DATA_DIR} \
+  --extensions-dir ${EXTENSIONS_DIR} \
+  --auth password \
+  --cert false
+
+# Перезапуск при сбое
+Restart=on-failure
+RestartSec=10
+
+# Логирование
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=code-server-%i
+
+# Security
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/home/%i/.config/code-server /home/%i/.local/share/code-server /run/user/%U
+
+[Install]
+WantedBy=default.target

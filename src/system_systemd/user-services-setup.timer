@@ -1,0 +1,11 @@
+[Unit]
+Description=Update user services every 12 hours
+Requires=user-services-setup.service
+
+[Timer]
+OnBootSec=15min
+OnUnitActiveSec=12h
+RandomizedDelaySec=30min
+
+[Install]
+WantedBy=timers.target

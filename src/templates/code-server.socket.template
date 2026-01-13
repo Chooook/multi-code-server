@@ -1,0 +1,17 @@
+[Unit]
+Description=Code Server Socket for %i
+PartOf=code-server.service
+
+[Socket]
+ListenStream=%t/code-server.sock
+SocketUser=%i
+SocketGroup=%i
+SocketMode=0660
+Accept=no
+IdleTimeoutSec=3600
+
+# Для отладки
+# Service=code-server.service
+
+[Install]
+WantedBy=sockets.target
