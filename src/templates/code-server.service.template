@@ -3,37 +3,28 @@ Description=Code Server for %i
 After=network.target nginx-proxy.service
 Wants=code-server.socket
 Requires=code-server.socket
+PartOf=code-server.service
 
 [Service]
 Type=exec
 User=%i
 Group=%i
-Environment="HOME=/home/%i"
-Environment="SHELL=/bin/bash"
-Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
-Environment="XDG_RUNTIME_DIR=/run/user/%U"
-Environment="DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%U/bus"
 
-# Конфиг code-server
-Environment="PASSWORD_HASH=%PASSWORD_HASH%"
-Environment="CODESERVER_PORT=%CODESERVER_PORT%"
+# Все переменные окружения в одном файле
+EnvironmentFile=/home/%i/.config/code-server/environment
 
-# Каталоги для конфигурации
-Environment="CONFIG_DIR=/home/%i/.config/code-server"
-Environment="DATA_DIR=/home/%i/.local/share/code-server"
-Environment="EXTENSIONS_DIR=/home/%i/.local/share/code-server/extensions"
-
-ExecStartPre=/bin/mkdir -p ${CONFIG_DIR} ${DATA_DIR} ${EXTENSIONS_DIR}
-ExecStartPre=/bin/chown -R %i:%i /home/%i/.config/code-server /home/%i/.local/share/code-server
+# Скрипт предзапуска
+ExecStartPre=/bin/bash /home/%i/.config/code-server/pre-start.sh
 
 # Основная команда запуска
 ExecStart=/usr/bin/code-server \
   --bind-addr unix:/run/user/%U/code-server.sock \
-  --config ${CONFIG_DIR}/config.yaml \
-  --user-data-dir ${DATA_DIR} \
-  --extensions-dir ${EXTENSIONS_DIR} \
+  --config /home/%i/.config/code-server/config.yaml \
   --auth password \
   --cert false
+
+# Автоматическая остановка когда не нужен
+StopWhenUnneeded=yes
 
 # Перезапуск при сбое
 Restart=on-failure
@@ -44,13 +35,16 @@ StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=code-server-%i
 
-# Security
+# Минимальные ограничения безопасности
 NoNewPrivileges=yes
 PrivateTmp=yes
-PrivateDevices=yes
-ProtectHome=yes
-ProtectSystem=strict
-ReadWritePaths=/home/%i/.config/code-server /home/%i/.local/share/code-server /run/user/%U
+ReadWritePaths=/home/%i /run/user/%U
+RuntimeDirectory=code-server
+RuntimeDirectoryMode=0750
+
+# Важно для работы сокетной активации
+RefuseManualStart=no
+RefuseManualStop=no
 
 [Install]
 WantedBy=default.target

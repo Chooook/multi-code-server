@@ -21,37 +21,43 @@
 
 ```text
 /etc/user-services/
-├── config.ini                          # Основной конфиг
-├── ports.db                            # БД портов: UID:nginx_port:codeserver_port
+├── config.ini                             # Основной конфиг
+├── ports.db                               # БД портов: UID:nginx_port:codeserver_port
 ├── templates/
-│   ├── nginx-proxy.conf.template       # Шаблон конфига nginx для include
-│   ├── code-server.socket.template     # Шаблон сокета
-│   ├── code-server.service.template    # Шаблон сервиса (активация через сокет)
-│   └── nginx-proxy.service.template    # Шаблон сервиса nginx
+│   ├── nginx-proxy.conf.template          # Шаблон конфига nginx для include
+│   ├── code-server.socket.template        # Шаблон сокета
+│   ├── code-server.service.template       # Шаблон сервиса (активация через сокет)
+│   └── nginx-proxy.service.template       # Шаблон сервиса nginx
+│   ├── codeserver.env.template            # Шаблон для EnvironmentFile
+│   └── codeserver-pre-start.sh.template   # Скрипт предзапуска
 └── scripts/
-    ├── create-user-services.sh        # Основной скрипт настройки
-    ├── allocate-ports.sh              # Аллокация портов
-    ├── cleanup-user.sh                # Очистка пользователя
-    ├── status-all.sh                  # Статус всех
-    └── show-logs.sh                   # Логи пользователя
+    ├── create-user-services.sh           # Основной скрипт настройки
+    ├── allocate-ports.sh                 # Аллокация портов
+    ├── cleanup-user.sh                   # Очистка пользователя
+    ├── status-all.sh                     # Статус всех
+    └── show-logs.sh                      # Логи пользователя
 
 /usr/local/bin/
-├── user-service-control               # Управление сервисами
-├── user-service-recreate-configs      # Пересоздание конфигов
-├── user-code-server-set-password      # Смена пароля
-└── user-service-logs                  # Просмотр логов
+├── user-service-control                  # Управление сервисами
+├── user-service-recreate-configs         # Пересоздание конфигов
+├── user-code-server-set-password         # Смена пароля
+└── user-service-logs                     # Просмотр логов
 
 /usr/local/share/user-services/
-├── guide.md                           # Основная инструкция
-├── ssh-setup.md                       # Настройка SSH
-└── scripts/                           # Копии скриптов для справки
+├── guide.md                              # Основная инструкция
+├── ssh-setup.md                          # Настройка SSH
+└── scripts/                              # Копии скриптов для справки
 
 /etc/systemd/system/
-├── user-services-setup.service        # Сервис настройки
-└── user-services-setup.timer          # Таймер (каждые 12 часов)
+├── user-services-setup.service           # Сервис настройки
+└── user-services-setup.timer             # Таймер (каждые 12 часов)
 
 /usr/lib/systemd/user/
-└── lingering-enable.service           # Сервис для авто-включения лингеринга
+└── lingering-enable.service              # Сервис для авто-включения лингеринга
+
+/home/<user>/.config/code-server/
+├── config.yaml                           # Основной конфиг code-server
+└── environment                           # Файл переменных окружения (генерируется)
 ```
 
 ### Глобальный конфиг `/etc/user-services/config.ini`
@@ -74,3 +80,12 @@
 
 ### Сервис для таймера `/etc/systemd/system/user-services-setup.service`
 [user-services-setup.service](src/system_systemd/user-services-setup.service)
+
+### Шаблон файла переменных окружения `/etc/user-services/templates/codeserver.env.template`
+[codeserver.env.template](src/templates/codeserver.env.template)
+
+### Шаблон скрипта предзапуска `/etc/user-services/templates/codeserver-pre-start.sh.template`
+[codeserver-pre-start.sh.template](src/templates/codeserver-pre-start.sh.template)
+
+### Скрипт смены пароля с перезапуском `/usr/local/bin/user-code-server-set-password.sh`
+[user-code-server-set-password.sh](src/scripts/user-code-server-set-password.sh)

@@ -10,8 +10,11 @@ SocketMode=0660
 Accept=no
 IdleTimeoutSec=3600
 
-# Для отладки
-# Service=code-server.service
+# Service to activate on connection
+Service=code-server.service
+
+# Keep socket alive even after service stops
+KeepAlive=yes
 
 [Install]
 WantedBy=sockets.target
