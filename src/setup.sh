@@ -179,7 +179,6 @@ copy_config_files() {
     # Systemd юниты
     cp "$SCRIPT_DIR/systemd"/*.service "$SYSTEMD_SYSTEM_DIR/"
     cp "$SCRIPT_DIR/systemd"/*.timer "$SYSTEMD_SYSTEM_DIR/"
-#    chmod 644 "$SYSTEMD_SYSTEM_DIR"/user-services-* # TODO what is it?
 
     # Руководства
     cp "$SCRIPT_DIR/guides"/*.md "$GUIDE_DIR/"

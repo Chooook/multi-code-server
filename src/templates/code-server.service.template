@@ -13,12 +13,9 @@ Group=%i
 # Все переменные окружения в одном файле
 EnvironmentFile=/home/%i/.config/code-server/environment
 
-# Скрипт предзапуска
-ExecStartPre=/bin/bash /home/%i/.config/code-server/pre-start.sh
-
 # Основная команда запуска
 ExecStart=/usr/bin/code-server \
-  --bind-addr unix:/run/user/%U/code-server.sock \
+  --bind-addr unix:/run/user/%UID%/code-server.sock \
   --config /home/%i/.config/code-server/config.yaml \
   --auth password \
   --cert false
@@ -38,7 +35,7 @@ SyslogIdentifier=code-server-%i
 # Минимальные ограничения безопасности
 NoNewPrivileges=yes
 PrivateTmp=yes
-ReadWritePaths=/home/%i /run/user/%U
+ReadWritePaths=/home/%i /run/user/%UID%
 RuntimeDirectory=code-server
 RuntimeDirectoryMode=0750
 

@@ -3,7 +3,7 @@ Description=Code Server Socket for %i
 PartOf=code-server.service
 
 [Socket]
-ListenStream=%t/code-server.sock
+ListenStream=/run/user/%UID%/code-server.sock
 SocketUser=%i
 SocketGroup=%i
 SocketMode=0660
