@@ -40,19 +40,25 @@ show_help() {
 # Функция получения списка сервисов для команды
 get_services() {
     local service=$1
+    local username=$(whoami)
 
     case $service in
         code-server)
-            echo "code-server.socket code-server.service"
+            echo "code-server.socket.$username code-server.service.$username"
             ;;
         nginx-proxy)
-            echo "nginx-proxy.service"
+            echo "nginx-proxy.service.$username"
             ;;
         all|"")
-            echo "$ALL_SERVICES"
+            echo "code-server.socket.$username code-server.service.$username nginx-proxy.service.$username"
             ;;
         *)
-            echo "$service"
+            # Если передан конкретный service name с суффиксом
+            if [[ "$service" == *.$username ]]; then
+                echo "$service"
+            else
+                echo "$service.$username"
+            fi
             ;;
     esac
 }

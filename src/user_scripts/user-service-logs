@@ -2,7 +2,7 @@
 # Просмотр логов сервисов пользователя
 
 USERNAME=$(whoami)
-SERVICES="code-server.socket code-server.service nginx-proxy.service"
+SERVICES="code-server.socket.$USERNAME code-server.service.$USERNAME nginx-proxy.service.$USERNAME"
 
 # Функция вывода помощи
 show_help() {
@@ -33,11 +33,14 @@ main() {
     case $service in
         code-server)
             echo "=== Code Server logs (last $lines lines) ==="
-            journalctl --user --lines="$lines" --no-pager -u code-server.socket -u code-server.service
+            journalctl --user --lines="$lines" --no-pager \
+                -u "code-server.socket.$USERNAME" \
+                -u "code-server.service.$USERNAME"
             ;;
         nginx|nginx-proxy)
             echo "=== Nginx Proxy logs (last $lines lines) ==="
-            journalctl --user --lines="$lines" --no-pager -u nginx-proxy.service
+            journalctl --user --lines="$lines" --no-pager \
+                -u "nginx-proxy.service.$USERNAME"
 
             # Также показываем файловые логи если есть
             uid=$(id -u)
@@ -62,9 +65,16 @@ main() {
                 echo "=== Logs for $service (last $lines lines) ==="
                 journalctl --user --lines="$lines" --no-pager -u "$service"
             else
-                echo "Error: Unknown service '$service'"
-                show_help
-                exit 1
+                # Пробуем добавить суффикс .$USERNAME
+                local service_with_suffix="$service.$USERNAME"
+                if systemctl --user cat "$service_with_suffix" >/dev/null 2>&1; then
+                    echo "=== Logs for $service_with_suffix (last $lines lines) ==="
+                    journalctl --user --lines="$lines" --no-pager -u "$service_with_suffix"
+                else
+                    echo "Error: Unknown service '$service'"
+                    show_help
+                    exit 1
+                fi
             fi
             ;;
     esac
