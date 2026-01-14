@@ -21,14 +21,21 @@ cleanup_by_username() {
 
     # 1. Останавливаем и отключаем сервисы
     if sudo -u "$username" systemctl --user daemon-reload 2>/dev/null; then
-        sudo -u "$username" systemctl --user stop code-server.service code-server.socket nginx-proxy.service 2>/dev/null || true
-        sudo -u "$username" systemctl --user disable code-server.service code-server.socket nginx-proxy.service 2>/dev/null || true
+        sudo -u "$username" systemctl --user stop \
+            "code-server.service.$username" \
+            "code-server.socket.$username" \
+            "nginx-proxy.service.$username" 2>/dev/null || true
+
+        sudo -u "$username" systemctl --user disable \
+            "code-server.service.$username" \
+            "code-server.socket.$username" \
+            "nginx-proxy.service.$username" 2>/dev/null || true
     fi
 
-    # 2. Удаляем systemd конфиги
-    rm -f "$SYSTEMD_USER_DIR/code-server.service"
-    rm -f "$SYSTEMD_USER_DIR/code-server.socket"
-    rm -f "$SYSTEMD_USER_DIR/nginx-proxy.service"
+    # 2. Удаляем systemd конфиги (теперь с суффиксом .username)
+    rm -f "$SYSTEMD_USER_DIR/code-server.service.$username"
+    rm -f "$SYSTEMD_USER_DIR/code-server.socket.$username"
+    rm -f "$SYSTEMD_USER_DIR/nginx-proxy.service.$username"
 
     # 3. Удаляем конфиг nginx
     rm -f "$NGINX_CONF_DIR/$username.conf"
@@ -46,8 +53,8 @@ cleanup_by_username() {
     rm -f "/home/$username/.user-services-guide.md" 2>/dev/null || true
 
     # 7. Удаляем сгенерированные конфиги (опционально, комментировать если нужно оставить)
-    # rm -rf "/home/$username/.config/code-server" 2>/dev/null || true
-    # rm -rf "/home/$username/.local/share/code-server" 2>/dev/null || true
+     rm -rf "/home/$username/.config/code-server" 2>/dev/null || true
+     rm -rf "/home/$username/.local/share/code-server" 2>/dev/null || true
 
     systemctl daemon-reload
     systemctl reload nginx 2>/dev/null || true
