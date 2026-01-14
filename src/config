@@ -27,3 +27,8 @@ PORTS_DB=/etc/user-services/ports.db
 
 # Nginx configs directory
 NGINX_CONF_DIR=/etc/nginx/user-services
+
+# Excluded users file
+EXCLUDED_USERS=/etc/user-services/excluded-users.db
+
+# TODO rename user-services to something more reliable

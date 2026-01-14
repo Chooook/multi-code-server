@@ -172,6 +172,11 @@ main() {
         [ ! -d "$home" ] && continue
         [[ "$shell" == *"nologin"* ]] && continue
         [[ "$shell" == *"false"* ]] && continue
+        # check if user excluded in file excluded_users
+        if grep -q "^$username$" "$EXCLUDED_USERS"; then
+            echo "Skipping excluded user: $username"
+            continue
+        fi
 
         echo "Processing user: $username (UID: $uid)"
 

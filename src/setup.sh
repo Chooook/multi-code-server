@@ -283,6 +283,10 @@ configure_systemd() {
 run_initial_setup() {
     print_status "Запуск первоначальной настройки пользователей..."
 
+    # Создаем пустой файл для исключенных пользователей
+    echo "# Every username should be on a new line. Comments are not allowed" > "$EXCLUDED_USERS"
+    chmod 644 "$EXCLUDED_USERS"
+
     if [ -x "$ETC_DIR/scripts/create-user-services.sh" ]; then
         "$ETC_DIR/scripts/create-user-services.sh"
 
