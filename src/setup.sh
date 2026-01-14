@@ -20,6 +20,7 @@ GUIDE_DIR="/usr/local/share/user-services"
 SYSTEMD_SYSTEM_DIR="/etc/systemd/system"
 SYSTEMD_USER_DIR="/etc/systemd/user"
 NGINX_CONF_DIR="/etc/nginx/user-services"
+EXCLUDED_USERS="/etc/user-services/excluded-users.db"
 
 # Функция вывода с цветом
 print_status() {
