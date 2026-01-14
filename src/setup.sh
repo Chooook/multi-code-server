@@ -111,35 +111,13 @@ install_code_server() {
 
     print_status "Установка code-server..."
 
-    # Проверяем архитектуру
-    ARCH=$(uname -m)
-    case $ARCH in
-        x86_64)
-            ARCH="x64"
-            ;;
-        aarch64|arm64)
-            ARCH="arm64"
-            ;;
-        *)
-            print_error "Неподдерживаемая архитектура: $ARCH"
-            return 1
-            ;;
-    esac
-
     # Скачиваем и устанавливаем
-    VERSION=$(curl -s https://api.github.com/repos/coder/code-server/releases/latest | grep '"tag_name"' | sed -E 's/.*"v([^"]+)".*/\1/')
+    wget https://github.com/coder/code-server/releases/download/v4.107.1/code-server-4.107.1-linux-amd64.tar.gz
+    tar -xzvf code-server-3.8.0-linux-amd64.tar.gz
 
-    if [ -z "$VERSION" ]; then
-        VERSION="4.23.0" # fallback
-    fi
-
-    URL="https://github.com/coder/code-server/releases/download/v${VERSION}/code-server-${VERSION}-linux-${ARCH}.tar.gz"
-
-    print_status "Скачивание code-server v$VERSION..."
-    cd /tmp
-    curl -fsSL "$URL" -o code-server.tar.gz
-    tar -xzf code-server.tar.gz
-    mv "code-server-${VERSION}-linux-${ARCH}/bin/code-server" /usr/local/bin/
+    sudo cp -r code-server-4.107.1-linux-amd64 /usr/lib/code-server
+    sudo ln -s /usr/lib/code-server/bin/code-server /usr/bin/code-server
+    sudo mkdir /var/lib/code-server
     chmod +x /usr/local/bin/code-server
 
     print_success "code-server установлен"
