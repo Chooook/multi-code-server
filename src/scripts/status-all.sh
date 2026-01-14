@@ -7,17 +7,6 @@ CONFIG_FILE="/etc/user-services/config"
     exit 1
 }
 
-# Функция проверки активности порта
-check_port_active() {
-    local port=$1
-    if ss -tuln | grep -q ":$port\b"; then
-        echo "✓"
-    else
-        echo "✗"
-    fi
-}
-
-# Функция проверки статуса одного пользователя
 check_user_status() {
     local username=$1
     local uid=$2
@@ -36,10 +25,10 @@ check_user_status() {
     local nginx_port=$(echo "$port_info" | cut -d: -f2)
     local codeserver_port=$(echo "$port_info" | cut -d: -f3)
 
-    # Проверяем наличие конфигов
+    # Проверяем наличие конфигов (теперь с суффиксом .username)
     local has_systemd=""
-    if [ -f "$SYSTEMD_USER_DIR/code-server.service" ] &&
-       [ -f "$SYSTEMD_USER_DIR/nginx-proxy.service" ]; then
+    if [ -f "$SYSTEMD_USER_DIR/code-server.service.$username" ] &&
+       [ -f "$SYSTEMD_USER_DIR/nginx-proxy.service.$username" ]; then
         has_systemd="✓"
     else
         has_systemd="✗"
@@ -57,19 +46,19 @@ check_user_status() {
     if loginctl show-user "$username" 2>/dev/null | grep -q "Linger=yes"; then
         linger_status="✓"
 
-        # Проверяем статусы через systemd (если можем)
+        # Проверяем статусы через systemd
         local codeserver_status="?"
         local nginx_status="?"
 
-        if timeout 2 sudo -u "$username" systemctl --user is-active code-server.service &>/dev/null; then
+        if timeout 2 sudo -u "$username" systemctl --user is-active "code-server.service.$username" &>/dev/null; then
             codeserver_status="✓"
-        elif timeout 2 sudo -u "$username" systemctl --user is-active code-server.socket &>/dev/null; then
+        elif timeout 2 sudo -u "$username" systemctl --user is-active "code-server.socket.$username" &>/dev/null; then
             codeserver_status="◐" # сокет активен, сервис может быть остановлен
         else
             codeserver_status="✗"
         fi
 
-        if timeout 2 sudo -u "$username" systemctl --user is-active nginx-proxy.service &>/dev/null; then
+        if timeout 2 sudo -u "$username" systemctl --user is-active "nginx-proxy.service.$username" &>/dev/null; then
             nginx_status="✓"
         else
             nginx_status="✗"
