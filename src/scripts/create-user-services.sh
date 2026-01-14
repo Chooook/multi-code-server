@@ -7,6 +7,62 @@ MAIN_CONFIG="/etc/user-services/config"
     exit 1
 }
 
+# Функция проверки существования всех необходимых конфигов
+check_user_configs_exist() {
+    local username="$1"
+    local uid="$2"
+
+    # 1. Проверяем systemd конфиги
+    for service in code-server.socket code-server.service nginx-proxy.service; do
+        local config_file="$SYSTEMD_USER_DIR/$service.$username"
+        if [ ! -f "$config_file" ]; then
+            echo "Missing systemd config: $config_file"
+            return 1  # Конфиг отсутствует
+        fi
+    done
+
+    # 2. Проверяем конфиг code-server
+    local codeserver_config="/home/$username/.config/code-server/config.yaml"
+    if [ ! -f "$codeserver_config" ]; then
+        echo "Missing code-server config: $codeserver_config"
+        return 1
+    fi
+
+    # 3. Проверяем environment файл
+    local env_file="/home/$username/.config/code-server/environment"
+    if [ ! -f "$env_file" ]; then
+        echo "Missing environment file: $env_file"
+        return 1
+    fi
+
+    # 4. Проверяем nginx конфиг
+    local nginx_conf="$NGINX_CONF_DIR/$username.conf"
+    if [ ! -f "$nginx_conf" ]; then
+        echo "Missing nginx config: $nginx_conf"
+        return 1
+    fi
+
+    # 5. Проверяем что порт выделен
+    if [ -f "$PORTS_DB" ]; then
+        if ! grep -q "^$uid:" "$PORTS_DB"; then
+            echo "Missing port allocation for UID: $uid"
+            return 1
+        fi
+    else
+        echo "Ports database not found: $PORTS_DB"
+        return 1
+    fi
+
+    # 6. Проверяем что лингеринг включен
+    if ! loginctl show-user "$username" 2>/dev/null | grep -q "Linger=yes"; then
+        echo "Linger not enabled for user: $username"
+        return 1
+    fi
+
+    # Все конфиги существуют
+    return 0
+}
+
 # Функция создания сервисов для пользователя
 setup_user_services() {
     local username="$1"
@@ -33,7 +89,6 @@ setup_user_services() {
             -e "s|%i|$username|g" \
             -e "s|%UID%|$uid|g" \
             -e "s|%PASSWORD_HASH%|$password_hash|g" \
-            -e "s|%CODESERVER_PORT%|$codeserver_port|g" \
             -e "s|%NGINX_PORT%|$nginx_port|g" \
             "$TEMPLATES_DIR/$template.template" > "$dest"
 
@@ -42,6 +97,7 @@ setup_user_services() {
 
     # 2. Code-server config
     local config_dir="/home/$username/.config/code-server"
+    mkdir -p "$config_dir"
     local codeserver_config="$config_dir/config.yaml"
 
     # Генерируем случайный пароль и хеш
@@ -50,7 +106,7 @@ setup_user_services() {
 
     # Сохраняем пароль для пользователя
     local password_file="/home/$username/.code-server-password.txt"
-    echo "Initial code-server password for $username: $password" > $password_file
+    echo "Initial code-server password for $username: $password" > "$password_file"
     chown "$username:$username" "/home/$username/.code-server-initial-password.txt"
     chmod 600 "/home/$username/.code-server-initial-password.txt"
 
@@ -93,13 +149,20 @@ EOF
 
     # Enable and start services (от имени пользователя)
     sudo -u "$username" systemctl --user daemon-reload
-    sudo -u "$username" systemctl --user enable --now code-server.socket nginx-proxy.service 2>/dev/null || true
+    sudo -u "$username" systemctl --user enable --now \
+        "code-server.socket.$username" \
+        "nginx-proxy.service.$username" 2>/dev/null || true
 
     echo "Services setup completed for $username"
 }
 
 # Основной цикл
 main() {
+    local force_update=${1:-false}
+
+    echo "=== User Services Setup ==="
+    echo "Mode: $([ "$force_update" = true ] && echo "FORCE CREATE" || echo "CHECK AND CREATE")"
+    echo ""
 
     # Получаем список всех обычных пользователей
     getent passwd | while IFS=: read -r username _ uid _ _ home shell; do
@@ -110,7 +173,21 @@ main() {
         [[ "$shell" == *"nologin"* ]] && continue
         [[ "$shell" == *"false"* ]] && continue
 
-        setup_user_services "$username" "$uid"
+        echo "Processing user: $username (UID: $uid)"
+
+        if [ "$force_update" = true ]; then
+            setup_user_services "$username" "$uid"
+        else
+            # Проверяем существование конфигов
+            if check_user_configs_exist "$username" "$uid"; then
+                echo "  ✓ All configs exist, skipping"
+            else
+                echo "  ✗ Missing configs, creating..."
+                setup_user_services "$username" "$uid"
+            fi
+        fi
+
+        echo ""
     done
 
     # Проверяем, что nginx включает наши конфиги
@@ -120,7 +197,53 @@ main() {
         systemctl reload nginx
     fi
 
-    echo "All user services have been updated"
+    echo "=== Setup completed ==="
+    echo "Total users processed: $(getent passwd | grep -c "^[^:]*:[^:]*:[1-9][0-9][0-9][0-9]")"
 }
 
-main "$@"
+# Обработка аргументов командной строки
+case "${1:-}" in
+    --help|-h)
+        echo "Usage: $0 [options]"
+        echo ""
+        echo "Options:"
+        echo "  --help, -h     Show this help"
+        echo "  --force, -f    Force update all configurations"
+        echo "  --user NAME    Process only specific user"
+        echo ""
+        echo "Examples:"
+        echo "  $0              # Check and create missing configs"
+        echo "  $0 --force      # Update all existing configs"
+        echo "  $0 --user john  # Process only user 'john'"
+        exit 0
+        ;;
+    --force|-f)
+        main true
+        ;;
+    --user)
+        if [ -z "$2" ]; then
+            echo "Error: --user requires username"
+            exit 1
+        fi
+        username="$2"
+        uid=$(id -u "$username" 2>/dev/null || echo "")
+        if [ -z "$uid" ]; then
+            echo "Error: User $username not found"
+            exit 1
+        fi
+        # Обработка только одного пользователя
+        if check_user_configs_exist "$username" "$uid"; then
+            echo "All configs exist for $username"
+            read -p "Create anyway? (y/N): " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                setup_user_services "$username" "$uid"
+            fi
+        else
+            setup_user_services "$username" "$uid"
+        fi
+        ;;
+    *)
+        main false
+        ;;
+esac
