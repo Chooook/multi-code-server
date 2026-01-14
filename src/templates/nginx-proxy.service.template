@@ -1,0 +1,23 @@
+[Unit]
+Description=Nginx Proxy for %i
+After=network.target
+Requires=network.target
+
+[Service]
+Type=forking
+User=%i
+Group=%i
+ExecStartPre=/usr/sbin/nginx -t -c /etc/nginx/user-services/%i.conf
+ExecStart=/usr/sbin/nginx -c /etc/nginx/user-services/%i.conf
+ExecReload=/usr/sbin/nginx -s reload -c /etc/nginx/user-services/%i.conf
+ExecStop=/usr/sbin/nginx -s stop -c /etc/nginx/user-services/%i.conf
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nginx-proxy-%i
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=default.target
