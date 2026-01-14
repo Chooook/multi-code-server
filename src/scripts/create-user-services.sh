@@ -1,9 +1,9 @@
 #!/bin/bash
 # Скрипт создания/обновления сервисов для пользователей
 
-CONFIG_FILE="/etc/user-services/config"
-[ -f "$CONFIG_FILE" ] && source "$CONFIG_FILE" || {
-    echo "Config file not found: $CONFIG_FILE"
+MAIN_CONFIG="/etc/user-services/config"
+[ -f "$MAIN_CONFIG" ] && source "$MAIN_CONFIG" || {
+    echo "Config file not found: $MAIN_CONFIG"
     exit 1
 }
 
@@ -23,32 +23,11 @@ setup_user_services() {
     local nginx_port=$(echo "$ports" | cut -d: -f1)
     local codeserver_port=$(echo "$ports" | cut -d: -f2)
 
-    # Генерируем хеш пароля если нужно
-    local password_hash=""
-    local config_dir="/home/$username/.config/code-server"
-    local config_file="$config_dir/config.yaml"
-
-    if [ -f "$config_file" ]; then
-        # Извлекаем хеш из существующего конфига
-        password_hash=$(grep '^password:' "$config_file" | head -1 | awk '{print $2}' | tr -d '[:space:]' || echo "")
-    fi
-
-    if [ -z "$password_hash" ]; then
-        # Генерируем случайный пароль и хеш
-        local password=$(openssl rand -base64 12 | tr -d '/+' | cut -c1-12)
-        password_hash=$(echo -n "$password" | sha256sum | cut -d' ' -f1)
-
-        # Сохраняем пароль для пользователя
-        echo "Initial code-server password for $username: $password" > "/home/$username/.code-server-initial-password.txt"
-        chown "$username:$username" "/home/$username/.code-server-initial-password.txt"
-        chmod 600 "/home/$username/.code-server-initial-password.txt"
-    fi
-
     # Создаём конфигурационные файлы из шаблонов
 
     # 1. Systemd service files
     for template in code-server.socket code-server.service nginx-proxy.service; do
-        local dest="$SYSTEMD_USER_DIR/${template//%i/$username}"
+        local dest="$SYSTEMD_USER_DIR/$template.$username"
 
         sed \
             -e "s|%i|$username|g" \
@@ -61,20 +40,33 @@ setup_user_services() {
         chmod 644 "$dest"
     done
 
-    # 2. Pre-start script (будет исполняться от пользователя)
-    local prestart_script="/home/$username/.config/code-server/pre-start.sh"
-    sed \
-        -e "s|%i|$username|g" \
-        -e "s|%UID%|$uid|g" \
-        -e "s|%PASSWORD_HASH%|$password_hash|g" \
-        -e "s|%CODESERVER_PORT%|$codeserver_port|g" \
-        "$TEMPLATES_DIR/codeserver-pre-start.sh.template" > "$prestart_script"
+    # 2. Code-server config
+    local config_dir="/home/$username/.config/code-server"
+    local codeserver_config="$config_dir/config.yaml"
 
-    chown "$username:$username" "$prestart_script"
-    chmod 755 "$prestart_script"
+    # Генерируем случайный пароль и хеш
+    local password=$(openssl rand -base64 12 | tr -d '/+' | cut -c1-12)
+    local password_hash=$(echo -n "$password" | sha256sum | cut -d' ' -f1)
 
-    # 3. Environment file (будет перезаписан pre-start скриптом при запуске)
-    local env_file="/home/$username/.config/code-server/environment.template"
+    # Сохраняем пароль для пользователя
+    local password_file="/home/$username/.code-server-password.txt"
+    echo "Initial code-server password for $username: $password" > $password_file
+    chown "$username:$username" "/home/$username/.code-server-initial-password.txt"
+    chmod 600 "/home/$username/.code-server-initial-password.txt"
+
+    cat > "$codeserver_config" << EOF
+bind-addr: unix:/run/user/$uid/code-server.sock
+auth: password
+password: $password_hash
+cert: false
+user-data-dir: /home/$username/.local/share/code-server
+extensions-dir: /home/$username/.local/share/code-server/extensions
+EOF
+    chown "$username:$username" "$codeserver_config"
+    chmod 600 "$codeserver_config"
+
+    # 3. Environment file
+    local env_file="/home/$username/.config/code-server/environment"
     sed \
         -e "s|%i|$username|g" \
         -e "s|%UID%|$uid|g" \
@@ -108,8 +100,6 @@ setup_user_services() {
 
 # Основной цикл
 main() {
-    # Создаём необходимые директории
-    mkdir -p "$NGINX_CONF_DIR" "$TEMPLATES_DIR" "$GUIDE_DIR" "$SYSTEMD_USER_DIR"
 
     # Получаем список всех обычных пользователей
     getent passwd | while IFS=: read -r username _ uid _ _ home shell; do
