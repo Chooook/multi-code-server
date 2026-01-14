@@ -118,7 +118,6 @@ install_code_server() {
     sudo cp -r code-server-4.107.1-linux-amd64 /usr/lib/code-server
     sudo ln -s /usr/lib/code-server/bin/code-server /usr/bin/code-server
     sudo mkdir /var/lib/code-server
-    chmod +x /usr/local/bin/code-server
 
     print_success "code-server установлен"
 }
