@@ -154,8 +154,8 @@ copy_config_files() {
     chmod 644 "$ETC_DIR/templates"/*.template
 
     # Systemd юниты
-    cp "$SCRIPT_DIR/systemd"/*.service "$SYSTEMD_SYSTEM_DIR/"
-    cp "$SCRIPT_DIR/systemd"/*.timer "$SYSTEMD_SYSTEM_DIR/"
+    cp "$SCRIPT_DIR/system_systemd"/*.service "$SYSTEMD_SYSTEM_DIR/"
+    cp "$SCRIPT_DIR/system_systemd"/*.timer "$SYSTEMD_SYSTEM_DIR/"
 
     # Руководства
     cp "$SCRIPT_DIR/guides"/*.md "$GUIDE_DIR/"
