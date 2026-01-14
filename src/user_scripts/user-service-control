@@ -1,0 +1,183 @@
+#!/bin/bash
+# Управление сервисами пользователя
+
+USERNAME=$(whoami)
+SERVICES="code-server nginx-proxy"
+ALL_SERVICES="code-server.socket code-server.service nginx-proxy.service"
+
+# Цвета для вывода
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Функция вывода помощи
+show_help() {
+    echo "Usage: $0 <command> [service]"
+    echo ""
+    echo "Commands:"
+    echo "  start [service]    Start service(s)"
+    echo "  stop [service]     Stop service(s)"
+    echo "  restart [service]  Restart service(s)"
+    echo "  status [service]   Show status of service(s)"
+    echo "  enable [service]   Enable service(s) to start on boot"
+    echo "  disable [service]  Disable service(s) from starting on boot"
+    echo "  list               List all available services"
+    echo "  logs [service]     Show logs for service(s) (alias for user-service-logs)"
+    echo ""
+    echo "Services:"
+    echo "  code-server    Code Server with socket activation"
+    echo "  nginx-proxy    Nginx proxy for code-server"
+    echo "  all            All services (default if not specified)"
+    echo ""
+    echo "Examples:"
+    echo "  $0 status              # Status of all services"
+    echo "  $0 start code-server   # Start code-server"
+    echo "  $0 logs nginx-proxy    # Show nginx logs"
+    echo "  $0 restart all         # Restart all services"
+}
+
+# Функция получения списка сервисов для команды
+get_services() {
+    local service=$1
+
+    case $service in
+        code-server)
+            echo "code-server.socket code-server.service"
+            ;;
+        nginx-proxy)
+            echo "nginx-proxy.service"
+            ;;
+        all|"")
+            echo "$ALL_SERVICES"
+            ;;
+        *)
+            echo "$service"
+            ;;
+    esac
+}
+
+# Функция проверки доступности systemd --user
+check_user_systemd() {
+    if ! systemctl --user daemon-reload 2>/dev/null; then
+        echo -e "${RED}Error: User systemd is not available${NC}"
+        echo "This usually means:"
+        echo "1. You don't have an active session"
+        echo "2. Linger is not enabled for your user"
+        echo "3. systemd --user is not running"
+        echo ""
+        echo "Try:"
+        echo "1. Log out and log in again"
+        echo "2. Contact administrator to enable linger: sudo loginctl enable-linger $USERNAME"
+        exit 1
+    fi
+}
+
+# Функция выполнения команды для сервисов
+run_command() {
+    local command=$1
+    local service_arg=$2
+    local services=$(get_services "$service_arg")
+
+    check_user_systemd
+
+    case $command in
+        start|stop|restart|enable|disable)
+            for service in $services; do
+                echo -n "Running '$command' for $service... "
+                if systemctl --user "$command" "$service" --no-block 2>/dev/null; then
+                    echo -e "${GREEN}OK${NC}"
+                else
+                    echo -e "${RED}FAILED${NC}"
+                fi
+            done
+            ;;
+        status)
+            echo -e "${YELLOW}=== Status of services for user: $USERNAME ===${NC}"
+            echo ""
+            for service in $services; do
+                systemctl --user status "$service" --no-pager --lines=0
+                echo ""
+            done
+
+            # Показываем информацию о портах если есть
+            if [ -f "/etc/user-services/ports.db" ]; then
+                uid=$(id -u)
+                port_info=$(grep "^$uid:" /etc/user-services/ports.db 2>/dev/null | head -1)
+                if [ -n "$port_info" ]; then
+                    nginx_port=$(echo "$port_info" | cut -d: -f2)
+                    echo -e "${YELLOW}Connection Information:${NC}"
+                    echo "  HTTP Proxy Port: $nginx_port"
+                    echo "  URL: http://$(hostname -f 2>/dev/null || hostname):$nginx_port"
+                    echo ""
+                fi
+            fi
+            ;;
+        list)
+            echo -e "${YELLOW}Available services for user: $USERNAME${NC}"
+            echo ""
+            for service in $ALL_SERVICES; do
+                status=$(systemctl --user is-active "$service" 2>/dev/null || echo "unknown")
+                enabled=$(systemctl --user is-enabled "$service" 2>/dev/null || echo "unknown")
+                printf "  %-25s [%s] %s\n" "$service" "$status" "(enabled: $enabled)"
+            done
+            ;;
+        logs)
+            # Перенаправляем в user-service-logs если он есть
+            if command -v user-service-logs >/dev/null; then
+                if [ -n "$service_arg" ] && [ "$service_arg" != "all" ]; then
+                    user-service-logs "$service_arg"
+                else
+                    user-service-logs
+                fi
+            else
+                echo -e "${RED}Error: user-service-logs not found${NC}"
+                echo "Showing logs with journalctl..."
+                for service in $services; do
+                    echo -e "\n${YELLOW}=== Logs for $service ===${NC}"
+                    journalctl --user -u "$service" --no-pager --lines=20
+                done
+            fi
+            ;;
+        *)
+            echo -e "${RED}Unknown command: $command${NC}"
+            show_help
+            exit 1
+            ;;
+    esac
+}
+
+# Основная логика
+main() {
+    if [ $# -lt 1 ]; then
+        show_help
+        exit 0
+    fi
+
+    local command=$1
+    local service=${2:-all}
+
+    # Проверяем что команда существует
+    case $command in
+        start|stop|restart|status|enable|disable|list|logs)
+            run_command "$command" "$service"
+            ;;
+        help|--help|-h)
+            show_help
+            ;;
+        *)
+            echo -e "${RED}Error: Unknown command '$command'${NC}"
+            show_help
+            exit 1
+            ;;
+    esac
+}
+
+# Проверяем что не запущено от root
+if [ "$EUID" -eq 0 ]; then
+    echo -e "${RED}Error: This script should not be run as root${NC}"
+    echo "Run as your regular user account"
+    exit 1
+fi
+
+main "$@"

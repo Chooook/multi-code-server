@@ -1,0 +1,87 @@
+#!/bin/bash
+# Просмотр логов сервисов пользователя
+
+USERNAME=$(whoami)
+SERVICES="code-server.socket code-server.service nginx-proxy.service"
+
+# Функция вывода помощи
+show_help() {
+    echo "Usage: $0 [service] [lines]"
+    echo ""
+    echo "Services:"
+    echo "  code-server    Code server logs (socket and service)"
+    echo "  nginx          Nginx proxy logs"
+    echo "  all            All services (default)"
+    echo "  <service-name> Specific systemd service name"
+    echo ""
+    echo "Examples:"
+    echo "  $0                    # Show all logs (50 lines)"
+    echo "  $0 code-server 100    # Show code-server logs (100 lines)"
+    echo "  $0 nginx              # Show nginx logs"
+    echo ""
+    echo "Available services:"
+    for service in $SERVICES; do
+        echo "  $service"
+    done
+}
+
+# Основная логика
+main() {
+    local service=${1:-all}
+    local lines=${2:-50}
+
+    case $service in
+        code-server)
+            echo "=== Code Server logs (last $lines lines) ==="
+            journalctl --user --lines="$lines" --no-pager -u code-server.socket -u code-server.service
+            ;;
+        nginx|nginx-proxy)
+            echo "=== Nginx Proxy logs (last $lines lines) ==="
+            journalctl --user --lines="$lines" --no-pager -u nginx-proxy.service
+
+            # Также показываем файловые логи если есть
+            uid=$(id -u)
+            username=$(whoami)
+            if [ -f "/var/log/nginx/user-$username-error.log" ]; then
+                echo ""
+                echo "=== Nginx error log ==="
+                tail -n "$lines" "/var/log/nginx/user-$username-error.log"
+            fi
+            ;;
+        all)
+            echo "=== All service logs (last $lines lines) ==="
+            journalctl --user --lines="$lines" --no-pager
+            ;;
+        help|--help|-h)
+            show_help
+            exit 0
+            ;;
+        *)
+            # Проверяем что сервис существует
+            if systemctl --user cat "$service" >/dev/null 2>&1; then
+                echo "=== Logs for $service (last $lines lines) ==="
+                journalctl --user --lines="$lines" --no-pager -u "$service"
+            else
+                echo "Error: Unknown service '$service'"
+                show_help
+                exit 1
+            fi
+            ;;
+    esac
+}
+
+# Проверяем что не запущено от root
+if [ "$EUID" -eq 0 ]; then
+    echo "Error: This script should not be run as root"
+    echo "Run as your regular user account"
+    exit 1
+fi
+
+# Проверяем доступность systemd --user
+if ! systemctl --user daemon-reload 2>/dev/null; then
+    echo "Error: User systemd is not available"
+    echo "You may need to log in again or have linger enabled"
+    exit 1
+fi
+
+main "$@"
