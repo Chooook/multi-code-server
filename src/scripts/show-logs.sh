@@ -96,15 +96,15 @@ search_logs() {
     sudo -u "$username" journalctl --user --lines=$lines --no-pager --grep="$search_term" 2>/dev/null || \
         echo "No matches found in user journal"
 
-    # Ищем в nginx логах
-    for logfile in "/var/log/nginx/user-$username-"*.log 2>/dev/null; do
-        if [ -f "$logfile" ]; then
-            echo ""
-            echo "=== In $(basename $logfile) ==="
-            grep --color=always -C 3 "$search_term" "$logfile" | tail -n $lines || \
-                echo "No matches found"
-        fi
-    done
+#    # Ищем в nginx логах FIXME
+#    for logfile in "/var/log/nginx/user-$username-*.log" 2>/dev/null; do
+#        if [ -f "$logfile" ]; then
+#            echo ""
+#            echo "=== In $(basename $logfile) ==="
+#            grep --color=always -C 3 "$search_term" "$logfile" | tail -n $lines || \
+#                echo "No matches found"
+#        fi
+#    done
 }
 
 # Основная логика
