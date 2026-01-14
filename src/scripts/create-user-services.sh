@@ -82,8 +82,9 @@ setup_user_services() {
     # Создаём конфигурационные файлы из шаблонов
 
     # 1. Systemd service files
-    for template in code-server.socket code-server.service nginx-proxy.service; do
-        local dest="$SYSTEMD_USER_DIR/$template.$username"
+    for template in code-server@.socket code-server@.service nginx-proxy@.service; do
+        local dest_name="${template/@./@$username.}"
+        local dest="$SYSTEMD_USER_DIR/$dest_name"
 
         sed \
             -e "s|%i|$username|g" \
@@ -147,11 +148,11 @@ EOF
     # Reload systemd
     systemctl daemon-reload
 
-    # Enable and start services (от имени пользователя)
+    # Enable and start services
     sudo -u "$username" systemctl --user daemon-reload
     sudo -u "$username" systemctl --user enable --now \
-        "code-server.socket.$username" \
-        "nginx-proxy.service.$username" 2>/dev/null || true
+        "code-server@$username.socket" \
+        "nginx-proxy@$username.service" 2>/dev/null || true
 
     echo "Services setup completed for $username"
 }

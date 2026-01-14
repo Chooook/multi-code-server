@@ -33,9 +33,9 @@ cleanup_by_username() {
     fi
 
     # 2. Удаляем systemd конфиги (теперь с суффиксом .username)
-    rm -f "$SYSTEMD_USER_DIR/code-server.service.$username"
-    rm -f "$SYSTEMD_USER_DIR/code-server.socket.$username"
-    rm -f "$SYSTEMD_USER_DIR/nginx-proxy.service.$username"
+    rm -f "$SYSTEMD_USER_DIR/code-server@$username.socket"
+    rm -f "$SYSTEMD_USER_DIR/code-server@$username.service"
+    rm -f "$SYSTEMD_USER_DIR/nginx-proxy@$username.service"
 
     # 3. Удаляем конфиг nginx
     rm -f "$NGINX_CONF_DIR/$username.conf"

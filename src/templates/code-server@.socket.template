@@ -1,6 +1,6 @@
 [Unit]
 Description=Code Server Socket for %i
-PartOf=code-server.service
+PartOf=code-server@%i.service
 
 [Socket]
 ListenStream=/run/user/%UID%/code-server.sock
@@ -11,7 +11,7 @@ Accept=no
 IdleTimeoutSec=3600
 
 # Service to activate on connection
-Service=code-server.service
+Service=code-server@%i.service
 
 # Keep socket alive even after service stops
 KeepAlive=yes

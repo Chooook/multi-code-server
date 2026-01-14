@@ -1,9 +1,9 @@
 [Unit]
 Description=Code Server for %i
-After=network.target nginx-proxy.service
-Wants=code-server.socket
-Requires=code-server.socket
-PartOf=code-server.service
+After=network.target nginx-proxy@%i.service
+Wants=code-server@%i.socket
+Requires=code-server@%i.socket
+PartOf=code-server@%i.service
 
 [Service]
 Type=exec

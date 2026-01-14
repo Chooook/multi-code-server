@@ -44,21 +44,16 @@ get_services() {
 
     case $service in
         code-server)
-            echo "code-server.socket.$username code-server.service.$username"
+            echo "code-server@$username.socket code-server@$username.service"
             ;;
         nginx-proxy)
-            echo "nginx-proxy.service.$username"
+            echo "nginx-proxy@$username.service"
             ;;
         all|"")
-            echo "code-server.socket.$username code-server.service.$username nginx-proxy.service.$username"
+            echo "code-server@$username.socket code-server@$username.service nginx-proxy@$username.service"
             ;;
         *)
-            # Если передан конкретный service name с суффиксом
-            if [[ "$service" == *.$username ]]; then
-                echo "$service"
-            else
-                echo "$service.$username"
-            fi
+            echo "$service"
             ;;
     esac
 }
