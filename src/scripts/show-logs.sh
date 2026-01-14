@@ -56,11 +56,13 @@ show_user_logs() {
         sudo -u "$username" journalctl --user --lines=$lines --no-pager
     elif [ "$service_filter" = "code-server" ]; then
         echo "=== Code Server logs (last $lines lines) ==="
-        sudo -u "$username" journalctl --user --lines=$lines --no-pager -u code-server.service -u code-server.socket
+        sudo -u "$username" journalctl --user --lines=$lines --no-pager \
+            -u "code-server.service.$username" \
+            -u "code-server.socket.$username"
     elif [ "$service_filter" = "nginx" ]; then
         echo "=== Nginx Proxy logs (last $lines lines) ==="
-        sudo -u "$username" journalctl --user --lines=$lines --no-pager -u nginx-proxy.service
-
+        sudo -u "$username" journalctl --user --lines=$lines --no-pager \
+            -u "nginx-proxy.service.$username"
         # Также показываем файловые логи nginx
         if [ -f "/var/log/nginx/user-$username-error.log" ]; then
             echo ""
@@ -68,8 +70,16 @@ show_user_logs() {
             tail -n $lines "/var/log/nginx/user-$username-error.log"
         fi
     else
-        echo "=== Logs for service: $service_filter (last $lines lines) ==="
-        sudo -u "$username" journalctl --user --lines=$lines --no-pager -u "$service_filter"
+        # Пробуем с суффиксом .username
+        local service_with_suffix="$service_filter.$username"
+        if sudo -u "$username" systemctl --user cat "$service_with_suffix" >/dev/null 2>&1; then
+            echo "=== Logs for service: $service_with_suffix (last $lines lines) ==="
+            sudo -u "$username" journalctl --user --lines=$lines --no-pager -u "$service_with_suffix"
+        else
+            # Пробуем без суффикса
+            echo "=== Logs for service: $service_filter (last $lines lines) ==="
+            sudo -u "$username" journalctl --user --lines=$lines --no-pager -u "$service_filter"
+        fi
     fi
 }
 
