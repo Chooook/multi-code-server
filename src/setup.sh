@@ -113,7 +113,7 @@ install_code_server() {
 
     # Скачиваем и устанавливаем
     wget https://github.com/coder/code-server/releases/download/v4.107.1/code-server-4.107.1-linux-amd64.tar.gz
-    tar -xzvf code-server-3.8.0-linux-amd64.tar.gz
+    tar -xzvf code-server-4.107.1-linux-amd64.tar.gz
 
     sudo cp -r code-server-4.107.1-linux-amd64 /usr/lib/code-server
     sudo ln -s /usr/lib/code-server/bin/code-server /usr/bin/code-server
