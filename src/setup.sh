@@ -232,7 +232,7 @@ test_installation() {
     done
 
     # Тест 2: Проверка исполняемых скриптов
-    for script in user-service-control user-service-logs, user-code-server-set-password; do
+    for script in user-service-control user-service-logs user-code-server-set-password; do
         if [ -x "$BIN_DIR/$script" ]; then
             print_success "Скрипт исполняем: $script"
             tests_passed=$((tests_passed + 1))
