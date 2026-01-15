@@ -1,6 +1,6 @@
 [Unit]
 Description=Create/update user services from templates
-After=network.target nginx.service
+After=network.target
 
 [Service]
 Type=oneshot
@@ -14,4 +14,3 @@ Group=root
 NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
-ReadWritePaths=/etc/user-services /etc/nginx/user-services /etc/systemd/user

@@ -19,45 +19,27 @@ cleanup_by_username() {
     local uid=$(id -u "$username")
     echo "Cleaning up services for user: $username (UID: $uid)"
 
-    # 1. Останавливаем и отключаем сервисы
     if sudo -u "$username" systemctl --user daemon-reload 2>/dev/null; then
         sudo -u "$username" systemctl --user stop \
-            "code-server.service.$username" \
-            "code-server.socket.$username" \
-            "nginx-proxy.service.$username" 2>/dev/null || true
+            "code-server@$username.service" 2>/dev/null || true
 
         sudo -u "$username" systemctl --user disable \
-            "code-server.service.$username" \
-            "code-server.socket.$username" \
-            "nginx-proxy.service.$username" 2>/dev/null || true
+            "code-server@$username.service" 2>/dev/null || true
     fi
 
-    # 2. Удаляем systemd конфиги (теперь с суффиксом .username)
-    rm -f "$SYSTEMD_USER_DIR/code-server@$username.socket"
     rm -f "$SYSTEMD_USER_DIR/code-server@$username.service"
-    rm -f "$SYSTEMD_USER_DIR/nginx-proxy@$username.service"
 
-    # 3. Удаляем конфиг nginx
-    rm -f "$NGINX_CONF_DIR/$username.conf"
-
-    # 4. Удаляем запись из базы портов
     if [ -f "$PORTS_DB" ]; then
         grep -v "^$uid:" "$PORTS_DB" > "$PORTS_DB.tmp" 2>/dev/null || true
         mv "$PORTS_DB.tmp" "$PORTS_DB" 2>/dev/null || true
     fi
 
-    # 5. Очищаем runtime директории
-    rm -rf "/run/user/$uid/code-server.sock" 2>/dev/null || true
-
-    # 6. Очищаем ссылку на инструкцию
     rm -f "/home/$username/.user-services-guide.md" 2>/dev/null || true
 
-    # 7. Удаляем сгенерированные конфиги (опционально, комментировать если нужно оставить)
      rm -rf "/home/$username/.config/code-server" 2>/dev/null || true
      rm -rf "/home/$username/.local/share/code-server" 2>/dev/null || true
 
     systemctl daemon-reload
-    systemctl reload nginx 2>/dev/null || true
 
     echo "Cleanup completed for user: $username"
 }

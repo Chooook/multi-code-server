@@ -22,23 +22,14 @@ check_user_status() {
         return
     fi
 
-    local nginx_port=$(echo "$port_info" | cut -d: -f2)
-    local codeserver_port=$(echo "$port_info" | cut -d: -f3)
+    local codeserver_port=$(echo "$port_info" | cut -d: -f2)
 
     # Проверяем наличие конфигов (теперь с суффиксом .username)
     local has_systemd=""
-    if [ -f "$SYSTEMD_USER_DIR/code-server.service.$username" ] &&
-       [ -f "$SYSTEMD_USER_DIR/nginx-proxy.service.$username" ]; then
+    if [ -f "$SYSTEMD_USER_DIR/code-server@$username.service" ]; then
         has_systemd="✓"
     else
         has_systemd="✗"
-    fi
-
-    local has_nginx=""
-    if [ -f "$NGINX_CONF_DIR/$username.conf" ]; then
-        has_nginx="✓"
-    else
-        has_nginx="✗"
     fi
 
     # Проверяем активность сервисов (если пользователь онлайн)
@@ -48,25 +39,16 @@ check_user_status() {
 
         # Проверяем статусы через systemd
         local codeserver_status="?"
-        local nginx_status="?"
 
-        if timeout 2 sudo -u "$username" systemctl --user is-active "code-server.service.$username" &>/dev/null; then
+        if timeout 2 sudo -u "$username" systemctl --user is-active "code-server@$username.service" &>/dev/null; then
             codeserver_status="✓"
-        elif timeout 2 sudo -u "$username" systemctl --user is-active "code-server.socket.$username" &>/dev/null; then
-            codeserver_status="◐" # сокет активен, сервис может быть остановлен
         else
             codeserver_status="✗"
         fi
 
-        if timeout 2 sudo -u "$username" systemctl --user is-active "nginx-proxy.service.$username" &>/dev/null; then
-            nginx_status="✓"
-        else
-            nginx_status="✗"
-        fi
-
-        echo "$username (UID:$uid) | Ports: HTTP:$nginx_port/CS:$codeserver_port | Configs: systemd:$has_systemd nginx:$has_nginx | Services: CS:$codeserver_status Nginx:$nginx_status | Linger:$linger_status"
+        echo "$username (UID:$uid) | Ports: HTTP: CS:$codeserver_port | Configs: systemd:$has_systemd | Services: CS:$codeserver_status | Linger:$linger_status"
     else
-        echo "$username (UID:$uid) | Ports: HTTP:$nginx_port/CS:$codeserver_port | Configs: systemd:$has_systemd nginx:$has_nginx | Linger:$linger_status"
+        echo "$username (UID:$uid) | Ports: HTTP: CS:$codeserver_port | Configs: systemd:$has_systemd | Linger:$linger_status"
     fi
 }
 
@@ -79,13 +61,6 @@ main() {
     echo ""
     printf "%-20s | %-25s | %-25s | %-20s\n" "User (UID)" "Ports (HTTP/CodeServer)" "Configurations" "Services Status"
     printf "%s\n" "----------------------------------------------------------------------------------------------------------------"
-
-    # Проверяем глобальный nginx
-    if systemctl is-active --quiet nginx; then
-        echo "Global nginx: ✓ Running"
-    else
-        echo "Global nginx: ✗ Not running"
-    fi
 
     if [ -f "$PORTS_DB" ]; then
         echo "Ports database: ✓ Found ($(wc -l < "$PORTS_DB") users)"
@@ -110,9 +85,9 @@ main() {
     echo "=== Active Ports Summary ==="
     echo "HTTP proxy ports in use:"
     if [ -f "$PORTS_DB" ]; then
-        while IFS=: read -r uid nginx_port codeserver_port uname; do
-            if ss -tuln | grep -q ":$nginx_port\b"; then
-                echo "  Port $nginx_port: $uname (UID:$uid) - ACTIVE"
+        while IFS=: read -r uid codeserver_port uname; do
+            if ss -tuln | grep -q ":$codeserver_port\b"; then
+                echo "  Port $codeserver_port: $uname (UID:$uid) - ACTIVE"
             fi
         done < "$PORTS_DB"
     fi

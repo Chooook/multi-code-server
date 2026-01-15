@@ -1,47 +1,24 @@
 [Unit]
 Description=Code Server for %i
-After=network.target nginx-proxy@%i.service
-Wants=code-server@%i.socket
-Requires=code-server@%i.socket
-PartOf=code-server@%i.service
+After=network.target;
 
 [Service]
-Type=exec
+Type=simple
 User=%i
 Group=%i
 
-# Все переменные окружения в одном файле
-EnvironmentFile=/home/%i/.config/code-server/environment
+Environment="SHELL=/bin/bash"
 
-# Основная команда запуска
 ExecStart=/usr/bin/code-server \
-  --bind-addr unix:/run/user/%UID%/code-server.sock \
+  --bind-addr localhost:%CODESERVER_PORT% \
   --config /home/%i/.config/code-server/config.yaml \
   --auth password \
   --cert false
 
-# Автоматическая остановка когда не нужен
-StopWhenUnneeded=yes
+Restart=always
 
-# Перезапуск при сбое
-Restart=on-failure
-RestartSec=10
-
-# Логирование
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=code-server-%i
-
-# Минимальные ограничения безопасности
-NoNewPrivileges=yes
 PrivateTmp=yes
-ReadWritePaths=/home/%i /run/user/%UID%
-RuntimeDirectory=code-server
-RuntimeDirectoryMode=0750
-
-# Важно для работы сокетной активации
-RefuseManualStart=no
-RefuseManualStop=no
+ProtectSystem=strict
 
 [Install]
 WantedBy=default.target

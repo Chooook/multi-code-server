@@ -2,8 +2,7 @@
 # Управление сервисами пользователя
 
 USERNAME=$(whoami)
-SERVICES="code-server nginx-proxy"
-ALL_SERVICES="code-server.socket code-server.service nginx-proxy.service"
+ALL_SERVICES=" code-server@$USERNAME.service"
 
 # Цвета для вывода
 RED='\033[0;31m'
@@ -27,13 +26,11 @@ show_help() {
     echo ""
     echo "Services:"
     echo "  code-server    Code Server with socket activation"
-    echo "  nginx-proxy    Nginx proxy for code-server"
     echo "  all            All services (default if not specified)"
     echo ""
     echo "Examples:"
     echo "  $0 status              # Status of all services"
     echo "  $0 start code-server   # Start code-server"
-    echo "  $0 logs nginx-proxy    # Show nginx logs"
     echo "  $0 restart all         # Restart all services"
 }
 
@@ -44,13 +41,10 @@ get_services() {
 
     case $service in
         code-server)
-            echo "code-server@$username.socket code-server@$username.service"
-            ;;
-        nginx-proxy)
-            echo "nginx-proxy@$username.service"
+            echo "code-server@$username.service"
             ;;
         all|"")
-            echo "code-server@$username.socket code-server@$username.service nginx-proxy@$username.service"
+            echo "code-server@$username.service"
             ;;
         *)
             echo "$service"
@@ -106,10 +100,10 @@ run_command() {
                 uid=$(id -u)
                 port_info=$(grep "^$uid:" /etc/user-services/ports.db 2>/dev/null | head -1)
                 if [ -n "$port_info" ]; then
-                    nginx_port=$(echo "$port_info" | cut -d: -f2)
+                    codeservice_port=$(echo "$port_info" | cut -d: -f1)
                     echo -e "${YELLOW}Connection Information:${NC}"
-                    echo "  HTTP Proxy Port: $nginx_port"
-                    echo "  URL: http://$(hostname -f 2>/dev/null || hostname):$nginx_port"
+                    echo "  HTTP Proxy Port: $codeservice_port"
+                    echo "  URL: http://$(hostname -f 2>/dev/null || hostname):$codeservice_port"
                     echo ""
                 fi
             fi

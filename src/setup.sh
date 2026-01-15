@@ -58,11 +58,6 @@ check_dependencies() {
         missing_deps+=("systemd")
     fi
 
-    # Проверяем nginx
-    if ! command -v nginx >/dev/null 2>&1; then
-        missing_deps+=("nginx")
-    fi
-
     # Проверяем code-server
     if ! command -v code-server >/dev/null 2>&1; then
         print_warning "code-server не установлен. Установите его вручную или используйте официальный скрипт."
@@ -112,7 +107,7 @@ install_code_server() {
 
     print_status "Установка code-server..."
 
-    # Скачиваем и устанавливаем
+    # Скачиваем и устанавливаем fallback версию
     wget https://github.com/coder/code-server/releases/download/v4.107.1/code-server-4.107.1-linux-amd64.tar.gz
     tar -xzvf code-server-4.107.1-linux-amd64.tar.gz
 
@@ -131,13 +126,9 @@ create_directories() {
     mkdir -p "$BIN_DIR"
     mkdir -p "$GUIDE_DIR"
     mkdir -p "$SYSTEMD_USER_DIR"
-    mkdir -p "$NGINX_CONF_DIR"
-    mkdir -p /var/log/nginx/user-services
 
     # Устанавливаем правильные права
     chmod 755 "$ETC_DIR"
-    chmod 755 "$NGINX_CONF_DIR"
-    chmod 755 /var/log/nginx/user-services
 
     print_success "Директории созданы"
 }
@@ -163,7 +154,7 @@ copy_config_files() {
     chmod 644 "$GUIDE_DIR"/*.md
 
     # Исполняемые скрипты
-    for script in user-service-control user-service-logs user-service-recreate-configs user-code-server-set-password; do
+    for script in user-service-control user-service-logs user-code-server-set-password; do
         cp "$SCRIPT_DIR/user_scripts/$script" "$BIN_DIR/"
         chmod 755 "$BIN_DIR/$script"
     done
@@ -175,61 +166,6 @@ copy_config_files() {
     done
 
     print_success "Файлы конфигурации скопированы"
-}
-
-# Настройка nginx
-configure_nginx() {
-    print_status "Настройка nginx..."
-
-    # Проверяем что nginx установлен
-    if ! command -v nginx >/dev/null 2>&1; then
-        print_error "nginx не установлен"
-        exit 1
-    fi
-
-    # Создаем backup конфига nginx
-    if [ -f /etc/nginx/nginx.conf ]; then
-        cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.backup.$(date +%Y%m%d_%H%M%S)
-    fi
-
-    # Добавляем include директиву если её нет
-    if ! grep -q "include $NGINX_CONF_DIR/\*.conf;" /etc/nginx/nginx.conf 2>/dev/null; then
-        print_status "Добавление include директивы в nginx.conf..."
-
-        # Ищем место внутри http блока
-        if grep -q "http {" /etc/nginx/nginx.conf; then
-            sed -i '/http {/a\    include '"$NGINX_CONF_DIR"'/*.conf;' /etc/nginx/nginx.conf
-        else
-            # Добавляем в конец файла перед последней }
-            sed -i '$i\    include '"$NGINX_CONF_DIR"'/*.conf;' /etc/nginx/nginx.conf
-        fi
-    fi
-
-    # Создаём тестовый конфиг для проверки
-    cat > "$NGINX_CONF_DIR/test.conf" << 'EOF'
-# Test configuration - can be removed
-server {
-    listen 9999;
-    server_name _;
-    return 200 "nginx is working with user-services include\n";
-    add_header Content-Type text/plain;
-}
-EOF
-
-    # Проверяем конфигурацию nginx
-    if nginx -t 2>/dev/null; then
-        print_success "Конфигурация nginx валидна"
-
-        # Перезагружаем nginx
-        if systemctl restart nginx 2>/dev/null; then
-            print_success "nginx перезагружен"
-        else
-            print_warning "Не удалось перезагрузить nginx, попробуйте вручную: systemctl restart nginx"
-        fi
-    else
-        print_error "Конфигурация nginx невалидна. Проверьте ошибки выше."
-        exit 1
-    fi
 }
 
 # Настройка systemd таймера
@@ -286,7 +222,7 @@ test_installation() {
     local tests_failed=0
 
     # Тест 1: Проверка существования директорий
-    for dir in "$ETC_DIR" "$BIN_DIR/user-service-control" "$GUIDE_DIR" "$NGINX_CONF_DIR"; do
+    for dir in "$ETC_DIR" "$BIN_DIR/user-service-control" "$GUIDE_DIR"; do
         if [ -e "$dir" ]; then
             print_success "Директория/файл существует: $dir"
             tests_passed=$((tests_passed + 1))
@@ -297,7 +233,7 @@ test_installation() {
     done
 
     # Тест 2: Проверка исполняемых скриптов
-    for script in user-service-control user-service-logs; do
+    for script in user-service-control user-service-logs, user-code-server-set-password; do
         if [ -x "$BIN_DIR/$script" ]; then
             print_success "Скрипт исполняем: $script"
             tests_passed=$((tests_passed + 1))
@@ -313,15 +249,6 @@ test_installation() {
         tests_passed=$((tests_passed + 1))
     else
         print_error "Systemd таймер не включен"
-        tests_failed=$((tests_failed + 1))
-    fi
-
-    # Тест 4: Проверка nginx конфигурации
-    if nginx -t >/dev/null 2>&1; then
-        print_success "Конфигурация nginx валидна"
-        tests_passed=$((tests_passed + 1))
-    else
-        print_error "Конфигурация nginx невалидна"
         tests_failed=$((tests_failed + 1))
     fi
 
@@ -349,7 +276,6 @@ show_summary() {
     echo "📁 Директории:"
     echo "  Конфиги:          $ETC_DIR"
     echo "  Шаблоны:          $ETC_DIR/templates/"
-    echo "  Nginx конфиги:    $NGINX_CONF_DIR"
     echo "  Руководства:      $GUIDE_DIR"
     echo ""
     echo "🛠 Утилиты:"

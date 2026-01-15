@@ -12,37 +12,18 @@ check_user_configs_exist() {
     local username="$1"
     local uid="$2"
 
-    # 1. Проверяем systemd конфиги
-    for service in code-server.socket code-server.service nginx-proxy.service; do
-        local config_file="$SYSTEMD_USER_DIR/$service.$username"
-        if [ ! -f "$config_file" ]; then
-            echo "Missing systemd config: $config_file"
-            return 1  # Конфиг отсутствует
-        fi
-    done
+    local config_file="$SYSTEMD_USER_DIR/code-server@$username.service"
+    if [ ! -f "$config_file" ]; then
+        echo "Missing systemd config: $config_file"
+        return 1  # Конфиг отсутствует
+    fi
 
-    # 2. Проверяем конфиг code-server
     local codeserver_config="/home/$username/.config/code-server/config.yaml"
     if [ ! -f "$codeserver_config" ]; then
         echo "Missing code-server config: $codeserver_config"
         return 1
     fi
 
-    # 3. Проверяем environment файл
-    local env_file="/home/$username/.config/code-server/environment"
-    if [ ! -f "$env_file" ]; then
-        echo "Missing environment file: $env_file"
-        return 1
-    fi
-
-    # 4. Проверяем nginx конфиг
-    local nginx_conf="$NGINX_CONF_DIR/$username.conf"
-    if [ ! -f "$nginx_conf" ]; then
-        echo "Missing nginx config: $nginx_conf"
-        return 1
-    fi
-
-    # 5. Проверяем что порт выделен
     if [ -f "$PORTS_DB" ]; then
         if ! grep -q "^$uid:" "$PORTS_DB"; then
             echo "Missing port allocation for UID: $uid"
@@ -53,7 +34,6 @@ check_user_configs_exist() {
         return 1
     fi
 
-    # 6. Проверяем что лингеринг включен
     if ! loginctl show-user "$username" 2>/dev/null | grep -q "Linger=yes"; then
         echo "Linger not enabled for user: $username"
         return 1
@@ -76,25 +56,21 @@ setup_user_services() {
     # Аллокация портов
     local ports
     ports=$(/etc/user-services/scripts/allocate-ports.sh "$uid" "$username")
-    local nginx_port=$(echo "$ports" | cut -d: -f1)
-    local codeserver_port=$(echo "$ports" | cut -d: -f2)
+    local codeserver_port=$(echo "$ports" | cut -d: -f1)
 
     # Создаём конфигурационные файлы из шаблонов
 
     # 1. Systemd service files
-    for template in code-server@.socket code-server@.service nginx-proxy@.service; do
-        local dest_name="${template/@./@$username.}"
-        local dest="$SYSTEMD_USER_DIR/$dest_name"
+    local template = code-server@.service
+    local dest_name="${template/@./@$username.}"
+    local dest="$SYSTEMD_USER_DIR/$dest_name"
 
-        sed \
-            -e "s|%i|$username|g" \
-            -e "s|%UID%|$uid|g" \
-            -e "s|%PASSWORD_HASH%|$password_hash|g" \
-            -e "s|%NGINX_PORT%|$nginx_port|g" \
-            "$TEMPLATES_DIR/$template.template" > "$dest"
+    sed \
+        -e "s|%i|$username|g" \
+        -e "s|%CODESERVER_PORT%|codeserver_port|g" \
+        "$TEMPLATES_DIR/$template.template" > "$dest"
 
-        chmod 644 "$dest"
-    done
+    chmod 644 "$dest"
 
     # 2. Code-server config
     local config_dir="/home/$username/.config/code-server"
@@ -112,38 +88,12 @@ setup_user_services() {
     chmod 600 "/home/$username/.code-server-initial-password.txt"
 
     cat > "$codeserver_config" << EOF
-bind-addr: unix:/run/user/$uid/code-server.sock
-auth: password
 password: $password_hash
-cert: false
 user-data-dir: /home/$username/.local/share/code-server
 extensions-dir: /home/$username/.local/share/code-server/extensions
 EOF
     chown "$username:$username" "$codeserver_config"
     chmod 600 "$codeserver_config"
-
-    # 3. Environment file
-    local env_file="/home/$username/.config/code-server/environment"
-    sed \
-        -e "s|%i|$username|g" \
-        -e "s|%UID%|$uid|g" \
-        -e "s|%CODESERVER_PORT%|$codeserver_port|g" \
-        "$TEMPLATES_DIR/codeserver.env.template" > "$env_file"
-
-    chown "$username:$username" "$env_file"
-    chmod 600 "$env_file"
-
-    # 4. Nginx config
-    local nginx_conf="$NGINX_CONF_DIR/$username.conf"
-    sed \
-        -e "s|%i|$username|g" \
-        -e "s|%UID%|$uid|g" \
-        -e "s|%NGINX_PORT%|$nginx_port|g" \
-        "$TEMPLATES_DIR/nginx-proxy.conf.template" > "$nginx_conf"
-
-    # 5. Ссылка на инструкцию
-    ln -sf "$GUIDE_DIR/guide.md" "/home/$username/.user-services-guide.md"
-    chown "$username:$username" "/home/$username/.user-services-guide.md"
 
     # Reload systemd
     systemctl daemon-reload
@@ -151,8 +101,7 @@ EOF
     # Enable and start services
     sudo -u "$username" systemctl --user daemon-reload
     sudo -u "$username" systemctl --user enable --now \
-        "code-server@$username.socket" \
-        "nginx-proxy@$username.service" 2>/dev/null || true
+        "code-server@$username.service" 2>/dev/null || true
 
     echo "Services setup completed for $username"
 }
@@ -195,13 +144,6 @@ main() {
 
         echo ""
     done
-
-    # Проверяем, что nginx включает наши конфиги
-    if ! grep -q "include $NGINX_CONF_DIR/\*.conf;" /etc/nginx/nginx.conf 2>/dev/null; then
-        echo "Adding include directive to nginx.conf..."
-        sed -i '/http {/a\    include '"$NGINX_CONF_DIR"'/*.conf;' /etc/nginx/nginx.conf
-        systemctl reload nginx
-    fi
 
     echo "=== Setup completed ==="
     echo "Total users processed: $(getent passwd | grep -c "^[^:]*:[^:]*:[1-9][0-9][0-9][0-9]")"

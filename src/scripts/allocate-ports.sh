@@ -72,18 +72,17 @@ main() {
     fi
 
     # Ищем свободные порты
-    nginx_port=$(find_free_port $NGINX_BASE_PORT $NGINX_PROXY_PORT_MIN $NGINX_PROXY_PORT_MAX $uid)
     codeserver_port=$(find_free_port $CODESERVER_BASE_PORT $CODESERVER_PORT_MIN $CODESERVER_PORT_MAX $uid)
 
     # Сохраняем в базу данных
     mkdir -p "$(dirname "$PORTS_DB")"
-    echo "$uid:$nginx_port:$codeserver_port:$username" >> "$PORTS_DB"
+    echo "$uid:$codeserver_port:$username" >> "$PORTS_DB"
 
     # Удаляем дубликаты если есть
     sort -u "$PORTS_DB" -o "$PORTS_DB.tmp"
     mv "$PORTS_DB.tmp" "$PORTS_DB"
 
-    echo "$nginx_port:$codeserver_port"
+    echo "$codeserver_port"
 }
 
 main "$@"

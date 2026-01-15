@@ -34,52 +34,7 @@ show_user_logs() {
         journalctl _UID=$uid --lines=$lines --no-pager 2>/dev/null || \
             echo "No system logs found for UID $uid"
 
-        # Показываем логи nginx
-        if [ -f "/var/log/nginx/user-$username-error.log" ]; then
-            echo ""
-            echo "=== Nginx error logs for $username ==="
-            tail -n $lines "/var/log/nginx/user-$username-error.log"
-        fi
-
-        if [ -f "/var/log/nginx/user-$username-access.log" ]; then
-            echo ""
-            echo "=== Nginx access logs for $username ==="
-            tail -n $lines "/var/log/nginx/user-$username-access.log"
-        fi
-
         return
-    fi
-
-    # Показываем логи из user journal
-    if [ -z "$service_filter" ] || [ "$service_filter" = "all" ]; then
-        echo "=== All services logs (last $lines lines) ==="
-        sudo -u "$username" journalctl --user --lines=$lines --no-pager
-    elif [ "$service_filter" = "code-server" ]; then
-        echo "=== Code Server logs (last $lines lines) ==="
-        sudo -u "$username" journalctl --user --lines=$lines --no-pager \
-            -u "code-server.service.$username" \
-            -u "code-server.socket.$username"
-    elif [ "$service_filter" = "nginx" ]; then
-        echo "=== Nginx Proxy logs (last $lines lines) ==="
-        sudo -u "$username" journalctl --user --lines=$lines --no-pager \
-            -u "nginx-proxy.service.$username"
-        # Также показываем файловые логи nginx
-        if [ -f "/var/log/nginx/user-$username-error.log" ]; then
-            echo ""
-            echo "=== Nginx error logs ==="
-            tail -n $lines "/var/log/nginx/user-$username-error.log"
-        fi
-    else
-        # Пробуем с суффиксом .username
-        local service_with_suffix="$service_filter.$username"
-        if sudo -u "$username" systemctl --user cat "$service_with_suffix" >/dev/null 2>&1; then
-            echo "=== Logs for service: $service_with_suffix (last $lines lines) ==="
-            sudo -u "$username" journalctl --user --lines=$lines --no-pager -u "$service_with_suffix"
-        else
-            # Пробуем без суффикса
-            echo "=== Logs for service: $service_filter (last $lines lines) ==="
-            sudo -u "$username" journalctl --user --lines=$lines --no-pager -u "$service_filter"
-        fi
     fi
 }
 
@@ -95,31 +50,17 @@ search_logs() {
     # Ищем в user journal
     sudo -u "$username" journalctl --user --lines=$lines --no-pager --grep="$search_term" 2>/dev/null || \
         echo "No matches found in user journal"
-
-#    # Ищем в nginx логах FIXME
-#    for logfile in "/var/log/nginx/user-$username-*.log" 2>/dev/null; do
-#        if [ -f "$logfile" ]; then
-#            echo ""
-#            echo "=== In $(basename $logfile) ==="
-#            grep --color=always -C 3 "$search_term" "$logfile" | tail -n $lines || \
-#                echo "No matches found"
-#        fi
-#    done
 }
 
 # Основная логика
 main() {
     if [ $# -lt 1 ]; then
-        echo "Usage: $0 <username> [service|'all'|'search'] [lines|search_term]"
+        echo "Usage: $0 <username> ['all'|'search'] [lines|search_term]"
         echo ""
         echo "Examples:"
         echo "  $0 john                      # Show all logs for john (50 lines)"
-        echo "  $0 john code-server 100      # Show code-server logs (100 lines)"
-        echo "  $0 john nginx                # Show nginx logs"
         echo "  $0 john all 200              # Show all logs (200 lines)"
         echo "  $0 john search 'error'       # Search for 'error' in logs"
-        echo ""
-        echo "Available services: code-server, nginx, all"
         exit 1
     fi
 

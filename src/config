@@ -1,15 +1,11 @@
 # User Services Configuration
 # Edit this file to change port ranges and other settings
 
-# Port ranges for nginx proxies (one per user)
-NGINX_PROXY_PORT_MIN=10000
-NGINX_PROXY_PORT_MAX=19999
-CODESERVER_PORT_MIN=20000
-CODESERVER_PORT_MAX=29999
+CODESERVER_PORT_MIN=10000
+CODESERVER_PORT_MAX=19999
 
 # Base ports for calculation
-NGINX_BASE_PORT=10000
-CODESERVER_BASE_PORT=20000
+CODESERVER_BASE_PORT=10000
 
 # Directories
 SYSTEMD_USER_DIR=/etc/systemd/user
@@ -19,14 +15,8 @@ TEMPLATES_DIR=/etc/user-services/templates
 GUIDE_DIR=/usr/local/share/user-services
 SCRIPTS_DIR=/usr/local/bin
 
-# Timeouts (in seconds)
-CODESERVER_IDLE_TIMEOUT=3600  # 1 hour
-
 # Ports database
 PORTS_DB=/etc/user-services/ports.db
-
-# Nginx configs directory
-NGINX_CONF_DIR=/etc/nginx/user-services
 
 # Excluded users file
 EXCLUDED_USERS=/etc/user-services/excluded-users.db
