@@ -61,7 +61,7 @@ setup_user_services() {
     # Создаём конфигурационные файлы из шаблонов
 
     # 1. Systemd service files
-    local template = code-server@.service
+    local template=code-server@.service
     local dest_name="${template/@./@$username.}"
     local dest="$SYSTEMD_USER_DIR/$dest_name"
 
@@ -84,8 +84,8 @@ setup_user_services() {
     # Сохраняем пароль для пользователя
     local password_file="/home/$username/.code-server-password.txt"
     echo "Initial code-server password for $username: $password" > "$password_file"
-    chown "$username:$username" "/home/$username/.code-server-initial-password.txt"
-    chmod 600 "/home/$username/.code-server-initial-password.txt"
+    chown "$username:$username" "$password_file"
+    chmod 600 "$password_file"
 
     cat > "$codeserver_config" << EOF
 password: $password_hash
