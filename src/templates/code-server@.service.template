@@ -1,6 +1,5 @@
 [Unit]
 Description=Code Server for %i
-After=network.target;
 
 [Service]
 Type=simple

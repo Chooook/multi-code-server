@@ -70,6 +70,7 @@ setup_user_services() {
         -e "s|%CODESERVER_PORT%|$codeserver_port|g" \
         "$TEMPLATES_DIR/$template.template" > "$dest"
 
+    chown "$username:$username" "$dest"
     chmod 644 "$dest"
 
     # 2. Code-server config
