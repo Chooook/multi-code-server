@@ -19,7 +19,6 @@ BIN_DIR="/usr/local/bin"
 GUIDE_DIR="/usr/local/share/user-services"
 SYSTEMD_SYSTEM_DIR="/etc/systemd/system"
 SYSTEMD_USER_DIR="/etc/systemd/user"
-NGINX_CONF_DIR="/etc/nginx/user-services"
 EXCLUDED_USERS="/etc/user-services/excluded-users.db"
 
 # Функция вывода с цветом
@@ -82,13 +81,13 @@ check_dependencies() {
         if command -v apt-get >/dev/null 2>&1; then
             print_status "Попытка установки через apt-get..."
             apt-get update
-            apt-get install -y "${missing_deps[@]}" nginx
+            apt-get install -y "${missing_deps[@]}"
         elif command -v yum >/dev/null 2>&1; then
             print_status "Попытка установки через yum..."
-            yum install -y "${missing_deps[@]}" nginx
+            yum install -y "${missing_deps[@]}"
         elif command -v dnf >/dev/null 2>&1; then
             print_status "Попытка установки через dnf..."
-            dnf install -y "${missing_deps[@]}" nginx
+            dnf install -y "${missing_deps[@]}"
         else
             print_error "Установите зависимости вручную и перезапустите скрипт"
             exit 1
@@ -325,7 +324,6 @@ main() {
 
     create_directories
     copy_config_files
-    configure_nginx
     configure_systemd
     run_initial_setup
     test_installation
@@ -360,7 +358,6 @@ case "${1:-}" in
         check_dependencies
         create_directories
         copy_config_files
-        configure_nginx
         configure_systemd
         test_installation
         show_summary
