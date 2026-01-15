@@ -63,6 +63,7 @@ setup_user_services() {
     # 1. Systemd service files
     local template=code-server@.service
     local dest="/home/$username/.config/systemd/user/code-server.service"
+    mkdir -p "$(dirname "$dest")"
 
     sed \
         -e "s|%i|$username|g" \
