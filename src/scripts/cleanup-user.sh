@@ -27,7 +27,7 @@ cleanup_by_username() {
             "code-server@$username.service" 2>/dev/null || true
     fi
 
-    rm -f "$SYSTEMD_USER_DIR/code-server@$username.service"
+    rm -f "/home/$username/.config/systemd/user/code-server.service"
 
     if [ -f "$PORTS_DB" ]; then
         grep -v "^$uid:" "$PORTS_DB" > "$PORTS_DB.tmp" 2>/dev/null || true

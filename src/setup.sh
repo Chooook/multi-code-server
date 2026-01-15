@@ -18,7 +18,6 @@ ETC_DIR="/etc/user-services"
 BIN_DIR="/usr/local/bin"
 GUIDE_DIR="/usr/local/share/user-services"
 SYSTEMD_SYSTEM_DIR="/etc/systemd/system"
-SYSTEMD_USER_DIR="/etc/systemd/user"
 EXCLUDED_USERS="/etc/user-services/excluded-users.db"
 
 # Функция вывода с цветом
@@ -124,7 +123,6 @@ create_directories() {
     mkdir -p "$ETC_DIR"/{scripts,templates}
     mkdir -p "$BIN_DIR"
     mkdir -p "$GUIDE_DIR"
-    mkdir -p "$SYSTEMD_USER_DIR"
 
     # Устанавливаем правильные права
     chmod 755 "$ETC_DIR"

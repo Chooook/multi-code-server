@@ -8,7 +8,6 @@ CODESERVER_PORT_MAX=19999
 CODESERVER_BASE_PORT=10000
 
 # Directories
-SYSTEMD_USER_DIR=/etc/systemd/user
 SYSTEMD_SYSTEM_DIR=/usr/lib/systemd/user
 USER_CONFIG_DIR=~/.config/systemd/user
 TEMPLATES_DIR=/etc/user-services/templates

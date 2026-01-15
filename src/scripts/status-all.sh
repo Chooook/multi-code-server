@@ -26,7 +26,7 @@ check_user_status() {
 
     # Проверяем наличие конфигов (теперь с суффиксом .username)
     local has_systemd=""
-    if [ -f "$SYSTEMD_USER_DIR/code-server@$username.service" ]; then
+    if [ -f "/home/$username/.config/systemd/user/code-server.service" ]; then
         has_systemd="✓"
     else
         has_systemd="✗"

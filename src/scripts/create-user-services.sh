@@ -12,7 +12,7 @@ check_user_configs_exist() {
     local username="$1"
     local uid="$2"
 
-    local config_file="$SYSTEMD_USER_DIR/code-server@$username.service"
+    local config_file="/home/$username/.config/systemd/user/code-server.service"
     if [ ! -f "$config_file" ]; then
         echo "Missing systemd config: $config_file"
         return 1  # Конфиг отсутствует
@@ -62,8 +62,7 @@ setup_user_services() {
 
     # 1. Systemd service files
     local template=code-server@.service
-    local dest_name="${template/@./@$username.}"
-    local dest="$SYSTEMD_USER_DIR/$dest_name"
+    local dest="/home/$username/.config/systemd/user/code-server.service"
 
     sed \
         -e "s|%i|$username|g" \
