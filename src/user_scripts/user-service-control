@@ -100,7 +100,7 @@ run_command() {
                 uid=$(id -u)
                 port_info=$(grep "^$uid:" /etc/user-services/ports.db 2>/dev/null | head -1)
                 if [ -n "$port_info" ]; then
-                    codeservice_port=$(echo "$port_info" | cut -d: -f1)
+                    codeservice_port=$(echo "$port_info" | cut -d: -f2)
                     echo -e "${YELLOW}Connection Information:${NC}"
                     echo "  HTTP Proxy Port: $codeservice_port"
                     echo "  URL: http://$(hostname -f 2>/dev/null || hostname):$codeservice_port"

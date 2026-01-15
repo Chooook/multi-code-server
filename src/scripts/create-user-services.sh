@@ -56,7 +56,7 @@ setup_user_services() {
     # Аллокация портов
     local ports
     ports=$(/etc/user-services/scripts/allocate-ports.sh "$uid" "$username")
-    local codeserver_port=$(echo "$ports" | cut -d: -f1)
+    local codeserver_port=$(echo "$ports" | cut -d: -f2)
 
     # Создаём конфигурационные файлы из шаблонов
 
@@ -67,7 +67,7 @@ setup_user_services() {
 
     sed \
         -e "s|%i|$username|g" \
-        -e "s|%CODESERVER_PORT%|codeserver_port|g" \
+        -e "s|%CODESERVER_PORT%|$codeserver_port|g" \
         "$TEMPLATES_DIR/$template.template" > "$dest"
 
     chmod 644 "$dest"
