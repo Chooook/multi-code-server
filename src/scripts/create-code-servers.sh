@@ -41,7 +41,7 @@ setup_user_services() {
     loginctl enable-linger "$username" 2>/dev/null || true
 
     if [ ! -S "/run/user/$uid/bus" ]; then
-        echo "User $username is not logged in yet. Skipping" && return 1;
+        echo "User $username is not logged in yet. Skipping" && return 0;
     fi
 
     # Создаём конфигурационные файлы из шаблонов
