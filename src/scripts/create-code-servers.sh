@@ -3,6 +3,7 @@
 
 EXCLUDED_USERS_DIR="/etc/auto-code-server/excluded_users"
 BIN_DIR="/usr/local/bin"
+GUIDE_DIR="/usr/local/share/auto-code-server"
 BASE_PORT=10000
 
 # Функция проверки существования всех необходимых конфигов
@@ -100,6 +101,7 @@ setup_user_services() {
         systemctl --user enable --now \
         "code-server" 2>/dev/null || true
 
+    ln -sf "$GUIDE_DIR/user-auto-code-server-guide.md" "/home/$username/user-auto-code-server-guide.md"
     echo "Services setup completed for $username"
 }
 

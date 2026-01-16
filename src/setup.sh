@@ -144,8 +144,8 @@ copy_config_files() {
     cp "$SCRIPT_DIR/system_systemd"/*.timer "/etc/systemd/system"
 
     # Руководства
-#    cp "$SCRIPT_DIR/guides"/*.md "$GUIDE_DIR/"
-#    chmod 644 "$GUIDE_DIR"/*.md
+    cp "$SCRIPT_DIR/guides"/*.md "$GUIDE_DIR/"
+    chmod 644 "$GUIDE_DIR"/*.md
 
     # Исполняемые скрипты
     for script in allocate-port code-server-control user-service-logs cleanup-my-code-server disable-auto-code-server-creation my-code-server-address; do
@@ -261,7 +261,7 @@ test_installation() {
 show_summary() {
     echo ""
     echo -e "${GREEN}╔══════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║                 УСТАНОВКА ЗАВЕРШЕНА                     ║${NC}"
+    echo -e "${GREEN}║                 УСТАНОВКА ЗАВЕРШЕНА                      ║${NC}"
     echo -e "${GREEN}╚══════════════════════════════════════════════════════════╝${NC}"
     echo ""
     echo "📁 Директории:"
