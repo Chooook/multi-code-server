@@ -40,7 +40,7 @@ setup_user_services() {
     # Включаем лингеринг
     loginctl enable-linger "$username" 2>/dev/null || true
 
-    if [ -S "/run/user/$uid/bus" ]; then
+    if [ ! -S "/run/user/$uid/bus" ]; then
         echo "User $username is not logged in yet. Skipping" && return 1;
     fi
 
