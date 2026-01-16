@@ -144,11 +144,11 @@ copy_config_files() {
     cp "$SCRIPT_DIR/system_systemd"/*.timer "/etc/systemd/system"
 
     # Руководства
-    cp "$SCRIPT_DIR/guides"/*.md "$GUIDE_DIR/"
-    chmod 644 "$GUIDE_DIR"/*.md
+#    cp "$SCRIPT_DIR/guides"/*.md "$GUIDE_DIR/"
+#    chmod 644 "$GUIDE_DIR"/*.md
 
     # Исполняемые скрипты
-    for script in allocate-port code-server-control user-service-logs cleanup-my-code-server disable-auto-code-server-creation; do
+    for script in allocate-port code-server-control user-service-logs cleanup-my-code-server disable-auto-code-server-creation my-code-server-address; do
         cp "$SCRIPT_DIR/user_scripts/$script" "$BIN_DIR/"
         chmod 755 "$BIN_DIR/$script"
     done

@@ -13,8 +13,7 @@
 ### Доступ к Code Server:
 1. Откройте браузер
 2. Перейдите по адресу: `http://сервер:ПОРТ`
-   - Порт можно узнать: `user-service-control status`
-   - Или посмотреть в файле: `cat ~/.code-server-initial-password.txt` (если есть)
+   - Порт можно узнать: `user-service-control status` или `my-code-server-address`
 
 ### Первый вход:
 - Используйте пароль из файла `~/.code-server-initial-password.txt`
@@ -36,9 +35,6 @@ user-service-control stop
 
 # Перезапустить все сервисы
 user-service-control restart
-
-# Показать список сервисов
-user-service-control list
 
 # Показать логи
 user-service-control logs

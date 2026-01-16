@@ -1,0 +1,5 @@
+#!/bin/bash
+
+cat "~/.code-server/config.yaml" | grep "bind-addr"
+echo
+echo "You can see your current port in ~/.code-server/config.yaml"
