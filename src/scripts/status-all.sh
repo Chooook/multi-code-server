@@ -23,8 +23,10 @@ check_user_status() {
 
         # Проверяем статусы через systemd
         local code_server_status="?"
-
-        if timeout 2 sudo -u "$username" systemctl --user is-active "code-server.service" &>/dev/null; then
+        if timeout 2 sudo -u "$username" \
+                XDG_RUNTIME_DIR="/run/user/$uid" \
+                DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+                systemctl --user is-active "code-server.service" &>/dev/null; then
             code_server_status="✓"
         else
             code_server_status="✗"

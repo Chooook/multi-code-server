@@ -19,7 +19,10 @@ show_user_logs() {
     echo ""
 
     # Проверяем доступность журнала пользователя
-    if ! sudo -u "$username" journalctl --user --quiet 2>/dev/null; then
+    if ! sudo -u "$username"
+            XDG_RUNTIME_DIR="/run/user/$uid" \
+            DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+            journalctl --user --quiet 2>/dev/null; then
         echo "User's systemd journal is not available."
         echo "The user may not have active sessions or linger enabled."
 
@@ -43,7 +46,10 @@ search_logs() {
     echo ""
 
     # Ищем в user journal
-    sudo -u "$username" journalctl --user --lines=$lines --no-pager --grep="$search_term" 2>/dev/null || \
+    sudo -u "$username"
+        XDG_RUNTIME_DIR="/run/user/$uid" \
+        DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+        journalctl --user --lines=$lines --no-pager --grep="$search_term" 2>/dev/null || \
         echo "No matches found in user journal"
 }
 

@@ -80,8 +80,14 @@ setup_user_services() {
     DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus"
     XDG_RUNTIME_DIR="/run/user/$uid"
     # Enable and start services
-    sudo -u "$username" systemctl --user daemon-reload
-    sudo -u "$username" systemctl --user enable --now \
+    sudo -u "$username" \
+        XDG_RUNTIME_DIR="/run/user/$uid" \
+        DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+        systemctl --user daemon-reload
+    sudo -u "$username" \
+        XDG_RUNTIME_DIR="/run/user/$uid" \
+        DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+        systemctl --user enable --now \
         "code-server.service" 2>/dev/null || true
 
     echo "Services setup completed for $username"
