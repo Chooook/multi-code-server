@@ -22,15 +22,15 @@ check_user_status() {
         # Проверяем статусы через systemd
         local code_server_status="?"
 
-        if timeout 2 sudo -u "$username" systemctl --user is-active "code-server@$username.service" &>/dev/null; then
+        if timeout 2 sudo -u "$username" systemctl --user is-active "code-server.service" &>/dev/null; then
             code_server_status="✓"
         else
             code_server_status="✗"
         fi
 
-        echo "$username (UID:$uid) | Ports: HTTP: CS:$code_server_port | Configs: systemd:$has_systemd | Services: CS:$code_server_status | Linger:$linger_status"
+        echo "$username (UID:$uid) | Configs: systemd:$has_systemd | Services: CS:$code_server_status | Linger:$linger_status"
     else
-        echo "$username (UID:$uid) | Ports: HTTP: CS:$code_server_port | Configs: systemd:$has_systemd | Linger:$linger_status"
+        echo "$username (UID:$uid) | Configs: systemd:$has_systemd | Linger:$linger_status"
     fi
 }
 
