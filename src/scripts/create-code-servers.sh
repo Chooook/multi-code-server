@@ -3,6 +3,7 @@
 
 EXCLUDED_USERS_DIR="/etc/auto-code-server/excluded_users"
 BIN_DIR="/usr/local/bin"
+BASE_PORT=10000
 
 # Функция проверки существования всех необходимых конфигов
 check_user_configs_exist() {
@@ -68,7 +69,7 @@ setup_user_services() {
     # Генерируем случайный пароль
     local password=$(openssl rand -base64 12 | tr -d '/+' | cut -c1-12)
     # Аллокация портов
-    local code_server_port=$("$BIN_DIR/allocate-port")
+    local code_server_port="${BASE_PORT+$uid%10000}}"
     sed \
         -e "s|%UNAME%|$username|g" \
         -e "s|%CODE_SERVER_PORT%|$code_server_port|g" \
