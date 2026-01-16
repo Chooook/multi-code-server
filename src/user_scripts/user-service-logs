@@ -2,56 +2,40 @@
 # Просмотр логов сервисов пользователя
 
 USERNAME=$(whoami)
-SERVICES="code-server@$USERNAME.service"
+SERVICE="code-server.service"
 
 # Функция вывода помощи
 show_help() {
-    echo "Usage: $0 [service] [lines]"
-    echo ""
-    echo "Services:"
-    echo "  code-server    Code server logs (socket and service)"
-    echo "  all            All services (default)"
-    echo "  <service-name> Specific systemd service name"
+    echo "Usage: $0 [lines]"
     echo ""
     echo "Examples:"
     echo "  $0                    # Show all logs (50 lines)"
-    echo "  $0 code-server 100    # Show code-server logs (100 lines)"
+    echo "  $0 100                # Show code-server logs (100 lines)"
     echo ""
-    echo "Available services:"
-    for service in $SERVICES; do
-        echo "  $service"
-    done
 }
 
 # Основная логика
 main() {
-    local service=${1:-all}
-    local lines=${2:-50}
+    local lines=$1
 
-    case $service in
-        code-server)
-            echo "=== Code Server logs (last $lines lines) ==="
-            journalctl --user --lines="$lines" --no-pager \
-                -u "code-server@$USERNAME.service"
-            ;;
-        all)
-            echo "=== All service logs (last $lines lines) ==="
-            journalctl --user --lines="$lines" --no-pager
-            ;;
+    case $lines in
         help|--help|-h)
             show_help
-            exit 0
+            return 0
             ;;
         *)
-            # Проверяем что сервис существует
-            if systemctl --user cat "$service" >/dev/null 2>&1; then
-                echo "=== Logs for $service (last $lines lines) ==="
-                journalctl --user --lines="$lines" --no-pager -u "$service"
-            else
-                echo "Error: Unknown service '$service'"
-                show_help
-                exit 1
+            if [ -z "$lines" ]; then
+                lines=50
             fi
+
+            if ! [[ "$lines" =~ ^[0-9]+$ ]]; then
+                echo "Error: Invalid number of lines: $lines"
+                return 1
+            fi
+
+            echo "=== Code Server logs (last $lines lines) ==="
+            journalctl --user --lines="$lines" --no-pager \
+                -u "$SERVICE"
             ;;
     esac
 }
@@ -60,14 +44,14 @@ main() {
 if [ "$EUID" -eq 0 ]; then
     echo "Error: This script should not be run as root"
     echo "Run as your regular user account"
-    exit 1
+    return 1
 fi
 
 # Проверяем доступность systemd --user
 if ! systemctl --user daemon-reload 2>/dev/null; then
     echo "Error: User systemd is not available"
     echo "You may need to log in again or have linger enabled"
-    exit 1
+    return 1
 fi
 
 main "$@"

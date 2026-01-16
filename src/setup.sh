@@ -14,11 +14,10 @@ NC='\033[0m' # No Color
 # Пути
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ETC_DIR="/etc/user-services"
+ETC_DIR="/etc/auto-code-server"
 BIN_DIR="/usr/local/bin"
-GUIDE_DIR="/usr/local/share/user-services"
-SYSTEMD_SYSTEM_DIR="/etc/systemd/system"
-EXCLUDED_USERS="/etc/user-services/excluded-users.db"
+GUIDE_DIR="/usr/local/share/auto-code-server"
+EXCLUDED_USERS_DIR="/etc/auto-code-server/excluded_users"
 
 # Функция вывода с цветом
 print_status() {
@@ -41,7 +40,7 @@ print_error() {
 check_root() {
     if [ "$EUID" -ne 0 ]; then
         print_error "Этот скрипт должен быть запущен от root"
-        exit 1
+        return 1
     fi
 }
 
@@ -62,7 +61,7 @@ check_dependencies() {
         read -p "Продолжить установку? (code-server можно установить позже) [y/N]: " -n 1 -r
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            exit 1
+            return 1
         fi
     fi
 
@@ -89,7 +88,7 @@ check_dependencies() {
             dnf install -y "${missing_deps[@]}"
         else
             print_error "Установите зависимости вручную и перезапустите скрипт"
-            exit 1
+            return 1
         fi
     fi
 
@@ -123,9 +122,11 @@ create_directories() {
     mkdir -p "$ETC_DIR"/{scripts,templates}
     mkdir -p "$BIN_DIR"
     mkdir -p "$GUIDE_DIR"
+    mkdir -p "$EXCLUDED_USERS_DIR"
 
     # Устанавливаем правильные права
     chmod 755 "$ETC_DIR"
+    chmod 1777 "EXCLUDED_USERS_DIR"
 
     print_success "Директории созданы"
 }
@@ -134,30 +135,26 @@ create_directories() {
 copy_config_files() {
     print_status "Копирование файлов конфигурации..."
 
-    # Основной конфиг
-    cp "$SCRIPT_DIR/config" "$ETC_DIR/"
-    chmod 644 "$ETC_DIR/config"
-
     # Шаблоны
     cp "$SCRIPT_DIR/templates"/*.template "$ETC_DIR/templates/"
     chmod 644 "$ETC_DIR/templates"/*.template
 
     # Systemd юниты
-    cp "$SCRIPT_DIR/system_systemd"/*.service "$SYSTEMD_SYSTEM_DIR/"
-    cp "$SCRIPT_DIR/system_systemd"/*.timer "$SYSTEMD_SYSTEM_DIR/"
+    cp "$SCRIPT_DIR/system_systemd"/*.service "/etc/systemd/system"
+    cp "$SCRIPT_DIR/system_systemd"/*.timer "/etc/systemd/system"
 
     # Руководства
     cp "$SCRIPT_DIR/guides"/*.md "$GUIDE_DIR/"
     chmod 644 "$GUIDE_DIR"/*.md
 
     # Исполняемые скрипты
-    for script in user-service-control user-service-logs user-code-server-set-password; do
+    for script in allocate-port code-server-control user-service-logs cleanup-my-code-server disable-auto-code-server-creation; do
         cp "$SCRIPT_DIR/user_scripts/$script" "$BIN_DIR/"
         chmod 755 "$BIN_DIR/$script"
     done
 
     # Root скрипты
-    for script in allocate-ports.sh create-user-services.sh cleanup-user.sh status-all.sh show-logs.sh; do
+    for script in create-code-servers.sh status-all.sh show-logs.sh; do
         cp "$SCRIPT_DIR/scripts/$script" "$ETC_DIR/scripts/"
         chmod 755 "$ETC_DIR/scripts/$script"
     done
@@ -173,41 +170,38 @@ configure_systemd() {
     systemctl daemon-reload
 
     # Включаем и запускаем таймер
-    if systemctl enable user-services-setup.timer 2>/dev/null; then
-        print_success "Таймер user-services-setup.timer включен"
+    if systemctl enable code-servers-setup.timer 2>/dev/null; then
+        print_success "Таймер code-servers-setup.timer включен"
     else
         print_error "Не удалось включить таймер"
     fi
 
-    if systemctl start user-services-setup.timer 2>/dev/null; then
-        print_success "Таймер user-services-setup.timer запущен"
+    if systemctl start code-servers-setup.timer 2>/dev/null; then
+        print_success "Таймер code-servers-setup.timer запущен"
     else
         print_error "Не удалось запустить таймер"
     fi
 
     # Проверяем статус
     print_status "Проверка статуса таймера..."
-    systemctl status user-services-setup.timer --no-pager --lines=3
+    systemctl status code-servers-setup.timer --no-pager --lines=3
 }
 
 # Запуск первоначальной настройки пользователей
 run_initial_setup() {
-    print_status "Запуск первоначальной настройки пользователей..."
+    print_status "Запуск создания сервисов для существующих пользователей..."
 
-    # Создаем пустой файл для исключенных пользователей
-    echo "# Every username should be on a new line. Comments are not allowed" > "$EXCLUDED_USERS"
-    chmod 644 "$EXCLUDED_USERS"
 
-    if [ -x "$ETC_DIR/scripts/create-user-services.sh" ]; then
-        "$ETC_DIR/scripts/create-user-services.sh"
+    if [ -x "$ETC_DIR/scripts/create-code-servers.sh" ]; then
+        "$ETC_DIR/scripts/create-code-servers.sh"
 
         if [ $? -eq 0 ]; then
-            print_success "Первоначальная настройка завершена"
+            print_success "Создание сервисов завершено успешно"
         else
-            print_warning "Первоначальная настройка завершилась с ошибками"
+            print_warning "Создание сервисов завершено с ошибками"
         fi
     else
-        print_error "Скрипт настройки не найден: $ETC_DIR/scripts/create-user-services.sh"
+        print_error "Скрипт создания сервисов не найден: $ETC_DIR/scripts/create-code-servers.sh"
     fi
 }
 
@@ -219,7 +213,7 @@ test_installation() {
     local tests_failed=0
 
     # Тест 1: Проверка существования директорий
-    for dir in "$ETC_DIR" "$BIN_DIR/user-service-control" "$GUIDE_DIR"; do
+    for dir in "$ETC_DIR" "$BIN_DIR" "$GUIDE_DIR" "$EXCLUDED_USERS_DIR"; do
         if [ -e "$dir" ]; then
             print_success "Директория/файл существует: $dir"
             tests_passed=$((tests_passed + 1))
@@ -230,7 +224,7 @@ test_installation() {
     done
 
     # Тест 2: Проверка исполняемых скриптов
-    for script in user-service-control user-service-logs user-code-server-set-password; do
+    for script in code-server-control allocate-port cleanup-my-code-server disable-auto-code-server-creation user-service-logs; do
         if [ -x "$BIN_DIR/$script" ]; then
             print_success "Скрипт исполняем: $script"
             tests_passed=$((tests_passed + 1))
@@ -241,7 +235,7 @@ test_installation() {
     done
 
     # Тест 3: Проверка systemd таймера
-    if systemctl is-enabled user-services-setup.timer >/dev/null 2>&1; then
+    if systemctl is-enabled code-servers-setup.timer >/dev/null 2>&1; then
         print_success "Systemd таймер включен"
         tests_passed=$((tests_passed + 1))
     else
@@ -276,21 +270,23 @@ show_summary() {
     echo "  Руководства:      $GUIDE_DIR"
     echo ""
     echo "🛠 Утилиты:"
-    echo "  user-service-control           # Управление сервисами"
+    echo "  code-server-control            # Управление сервисом"
     echo "  user-service-logs              # Просмотр логов"
-    echo "  user-code-server-set-password  # Смена пароля"
+    echo "  allocate-port                  # Подбор свободного порта"
+    echo "  cleanup-my-code-server         # Очистка сервисов"
+    echo "  disable-auto-code-server-creation  # Отключение автоматического создания сервисов"
     echo ""
     echo "⚙ Systemd:"
-    echo "  Таймер:          user-services-setup.timer"
-    echo "  Сервис:          user-services-setup.service"
+    echo "  Таймер:          code-servers-setup.timer"
+    echo "  Сервис:          code-servers-setup.service"
     echo "  Частота:         Каждые 12 часов"
     echo ""
     echo "🔧 Проверка установки:"
     echo "  sudo $ETC_DIR/scripts/status-all.sh"
     echo ""
     echo "📖 Документация:"
-    echo "  Руководство администратора: $GUIDE_DIR/admin_guide.md"
-    echo "  Руководство пользователя:   $GUIDE_DIR/guide.md"
+    echo "  Руководство администратора: $GUIDE_DIR/admin-auto-code-server-guide.md"
+    echo "  Руководство пользователя:   $GUIDE_DIR/user-auto-code-server-guide.md"
     echo ""
     echo "🚀 Следующие шаги:"
     echo "  1. Проверьте статус: sudo $ETC_DIR/scripts/status-all.sh"
@@ -305,9 +301,9 @@ show_summary() {
 
 # Основная функция
 main() {
-    echo -e "${GREEN}╔══════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║        Установка системы пользовательских сервисов       ║${NC}"
-    echo -e "${GREEN}╚══════════════════════════════════════════════════════════╝${NC}"
+    echo -e "${GREEN}╔══════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║        Установка all-users code-server       ║${NC}"
+    echo -e "${GREEN}╚══════════════════════════════════════════════╝${NC}"
     echo ""
 
     check_root
@@ -344,12 +340,12 @@ case "${1:-}" in
         echo "  $0              Полная установка"
         echo "  $0 --test       Проверка зависимостей"
         echo "  $0 --quick      Установка без code-server"
-        exit 0
+        return 0
         ;;
     --test)
         check_root
         check_dependencies
-        exit 0
+        return 0
         ;;
     --quick)
         check_root
@@ -359,7 +355,7 @@ case "${1:-}" in
         configure_systemd
         test_installation
         show_summary
-        exit 0
+        return 0
         ;;
     *)
         main

@@ -9,29 +9,28 @@
    - При создании конфигов добавляем пользователя в лингеринг 
    - `loginctl enable-linger $USERNAME`
 3. Проксирование через nginx:
-   - Глобальный nginx включает `/etc/nginx/user-services/*.conf`
+   - Глобальный nginx включает `/etc/nginx/auto-code-server/*.conf`
    - Каждый пользователь получает свой `.conf` файл
    - Прокси на UNIX-сокет code-server
 4. Инструкции через симлинки:
    ```bash
-   ln -sf /usr/local/share/user-services/guide.md /home/$USER/.user-services-guide.md
+   ln -sf /usr/local/share/auto-code-server/user-auto-code-server-guide.md /home/$USER/.user-auto-code-server-guide.md
    ```
 
 ### Структура артефактов:
 
 ```text
-/etc/user-services/                        # ETC_DIR
+/etc/auto-code-server/                        # ETC_DIR
 ├── config                                 # Основной конфиг
-├── ports.db                               # БД портов: UID:nginx_port:codeserver_port
 ├── templates/
 │   ├── nginx-proxy.conf.template          # Шаблон конфига nginx для include
 │   ├── code-server.socket.template        # Шаблон сокета
 │   ├── code-server.service.template       # Шаблон сервиса (активация через сокет)
 │   └── nginx-proxy.service.template       # Шаблон сервиса nginx
-│   ├── codeserver.env.template            # Шаблон для EnvironmentFile
+│   ├── code-server.env.template            # Шаблон для EnvironmentFile
 └── scripts/                               # TEMPLATES_DIR
-    ├── create-user-services.sh            # Основной скрипт настройки
-    ├── allocate-ports.sh                  # Аллокация портов
+    ├── create-auto-code-server.sh            # Основной скрипт настройки
+    ├── allocate-port.sh                  # Аллокация порта
     ├── cleanup-user.sh                    # Очистка пользователя
     ├── status-all.sh                      # Статус всех
     └── show-logs.sh                       # Логи пользователя
@@ -42,13 +41,13 @@
 ├── user-code-server-set-password          # Смена пароля
 └── user-service-logs                      # Просмотр логов
 
-/usr/local/share/user-services/            # GUIDE_DIR
-├── guide.md                               # Основная инструкция
+/usr/local/share/auto-code-server/            # GUIDE_DIR
+├── user-auto-code-server-guide.md                               # Основная инструкция
 └── scripts/                               # Копии скриптов для справки
 
 /etc/systemd/system/                       # SYSTEMD_SYSTEM_DIR
-├── user-services-setup.service            # Сервис настройки
-└── user-services-setup.timer              # Таймер (каждые 12 часов)
+├── auto-code-server-setup.service            # Сервис настройки
+└── auto-code-server-setup.timer              # Таймер (каждые 12 часов)
 
 /usr/lib/systemd/user/ (или /etc/systemd/user ?)  # SYSTEMD_USER_DIR
 └── lingering-enable.service               # Сервис для авто-включения лингеринга
@@ -57,9 +56,9 @@
 ├── config.yaml                            # Основной конфиг code-server
 └── environment                            # Файл переменных окружения (генерируется)
 
-/etc/nginx/user-services                   # NGINX_CONF_DIR
+/etc/nginx/auto-code-server                   # NGINX_CONF_DIR
 └── ???
 
-/var/log/nginx/user-services
+/var/log/nginx/auto-code-server
 └── logs?
 ```

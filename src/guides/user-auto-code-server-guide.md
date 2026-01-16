@@ -122,10 +122,7 @@ autossh -M 0 -N -L 8080:localhost:ВАШ_ПОРТ ваш_логин@сервер
 # Способ 1: Через скрипт управления
 user-service-control status | grep "HTTP Proxy Port"
 
-# Способ 2: Из файла (если доступно)
-cat /etc/user-services/ports.db | grep "^$(id -u):" | cut -d: -f2
-
-# Способ 3: Через systemd (если сервис запущен)
+# Способ 2: Через systemd (если сервис запущен)
 systemctl --user show nginx-proxy.service | grep Listen | head -1
 ```
 

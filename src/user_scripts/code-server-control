@@ -1,0 +1,121 @@
+#!/bin/bash
+# Управление сервисами пользователя
+
+USERNAME=$(whoami)
+SERVICE="code-server.service"
+
+# Цвета для вывода
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Функция вывода помощи
+show_help() {
+    echo "Usage: $0 <command>"
+    echo ""
+    echo "Commands:"
+    echo "  start     Start service"
+    echo "  stop      Stop service"
+    echo "  restart   Restart service"
+    echo "  status    Show status of service"
+    echo "  enable    Enable service to start on boot"
+    echo "  disable   Disable service from starting on boot"
+    echo "  logs      Show logs for service (alias for user-service-logs)"
+    echo ""
+    echo "Examples:"
+    echo "  $0 status   # Status of service"
+    echo "  $0 start    # Start code-server"
+    echo "  $0 restart  # Restart service"
+}
+
+# Функция проверки доступности systemd --user
+check_user_systemd() {
+    if ! systemctl --user daemon-reload 2>/dev/null; then
+        echo -e "${RED}Error: User systemd is not available${NC}"
+        echo "This usually means:"
+        echo "1. You don't have an active session"
+        echo "2. Linger is not enabled for your user"
+        echo "3. systemd --user is not running"
+        echo ""
+        echo "Try:"
+        echo "1. Log out and log in again"
+        echo "2. Contact administrator to enable linger: sudo loginctl enable-linger $USERNAME"
+        return 1
+    fi
+}
+
+# Функция выполнения команды для сервисов
+run_command() {
+    local command=$1
+    local service_arg=$2
+
+    check_user_systemd
+
+    case $command in
+        start|stop|restart|enable|disable)
+            echo -n "Running '$command' for $SERVICE... "
+            if systemctl --user "$command" "$service" --no-block 2>/dev/null; then
+                echo -e "${GREEN}OK${NC}"
+            else
+                echo -e "${RED}FAILED${NC}"
+            fi
+            ;;
+        status)
+            echo -e "${YELLOW}=== Status of code-server for user: $USERNAME ===${NC}"
+            echo ""
+            systemctl --user status "$SERVICE" --no-pager --lines=0
+            echo ""
+            ;;
+        logs)
+            # Перенаправляем в user-service-logs если он есть
+            if command -v user-service-logs >/dev/null; then
+                user-service-logs
+            else
+                echo -e "${RED}Error: user-service-logs not found${NC}"
+                echo "Showing logs with journalctl..."
+                echo -e "\n${YELLOW}=== Logs for $SERVICE ===${NC}"
+                journalctl --user -u "$SERVICE" --no-pager --lines=20
+            fi
+            ;;
+        *)
+            echo -e "${RED}Unknown command: $command${NC}"
+            show_help
+            return 1
+            ;;
+    esac
+}
+
+# Основная логика
+main() {
+    if [ $# -lt 1 ]; then
+        show_help
+        return 0
+    fi
+
+    local command=$1
+
+    # Проверяем что команда существует
+    case $command in
+        start|stop|restart|status|enable|disable|list|logs)
+            run_command "$command" "$SERVICE"
+            ;;
+        help|--help|-h)
+            show_help
+            ;;
+        *)
+            echo -e "${RED}Error: Unknown command '$command'${NC}"
+            show_help
+            return 1
+            ;;
+    esac
+}
+
+# Проверяем что не запущено от root
+if [ "$EUID" -eq 0 ]; then
+    echo -e "${RED}Error: This script should not be run as root${NC}"
+    echo "Run as your regular user account"
+    return 1
+fi
+
+main "$@"

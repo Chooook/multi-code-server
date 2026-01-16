@@ -1,11 +1,7 @@
 #!/bin/bash
 # Скрипт создания/обновления сервисов для пользователей
 
-MAIN_CONFIG="/etc/user-services/config"
-[ -f "$MAIN_CONFIG" ] && source "$MAIN_CONFIG" || {
-    echo "Config file not found: $MAIN_CONFIG"
-    exit 1
-}
+EXCLUDED_USERS_DIR="/etc/auto-code-server/excluded_users"
 
 # Функция проверки существования всех необходимых конфигов
 check_user_configs_exist() {
@@ -18,19 +14,9 @@ check_user_configs_exist() {
         return 1  # Конфиг отсутствует
     fi
 
-    local codeserver_config="/home/$username/.config/code-server/config.yaml"
-    if [ ! -f "$codeserver_config" ]; then
-        echo "Missing code-server config: $codeserver_config"
-        return 1
-    fi
-
-    if [ -f "$PORTS_DB" ]; then
-        if ! grep -q "^$uid:" "$PORTS_DB"; then
-            echo "Missing port allocation for UID: $uid"
-            return 1
-        fi
-    else
-        echo "Ports database not found: $PORTS_DB"
+    local code_server_config="/home/$username/.config/code-server/config.yaml"
+    if [ ! -f "$code_server_config" ]; then
+        echo "Missing code-server config: $code_server_config"
         return 1
     fi
 
@@ -53,48 +39,38 @@ setup_user_services() {
     # Включаем лингеринг
     loginctl enable-linger "$username" 2>/dev/null || true
 
-    # Аллокация портов
-    local ports
-    ports=$(/etc/user-services/scripts/allocate-ports.sh "$uid" "$username")
-    local codeserver_port=$(echo "$ports" | cut -d: -f2)
-
     # Создаём конфигурационные файлы из шаблонов
 
     # 1. Systemd service files
-    local template=code-server@.service
+    local template=code-server.service.template
     local dest="/home/$username/.config/systemd/user/code-server.service"
     mkdir -p "$(dirname "$dest")"
-
     sed \
         -e "s|%i|$username|g" \
-        -e "s|%CODESERVER_PORT%|$codeserver_port|g" \
-        "$TEMPLATES_DIR/$template.template" > "$dest"
+        -e "s|%CODE_SERVER_PORT%|$code_server_port|g" \
+        "/etc/auto-code-server/templates/$template" > "$dest"
 
     chown "$username:$username" "$dest"
     chmod 644 "$dest"
 
     # 2. Code-server config
+    local conf_template=code-server-config.yaml.template
     local config_dir="/home/$username/.config/code-server"
     mkdir -p "$config_dir"
-    local codeserver_config="$config_dir/config.yaml"
+    local code_server_config_path="$config_dir/config.yaml"
 
-    # Генерируем случайный пароль и хеш
+    # Генерируем случайный пароль
     local password=$(openssl rand -base64 12 | tr -d '/+' | cut -c1-12)
-    local password_hash=$(echo -n "$password" | sha256sum | cut -d' ' -f1)
+    # Аллокация портов
+    local code_server_port=$("$BIN_DIR/allocate-port")
+    sed \
+        -e "s|%UNAME%|$username|g" \
+        -e "s|%CODE_SERVER_PORT%|$code_server_port|g" \
+        -e "s|%PASSWORD%|$password|g" \
+        "/etc/auto-code-server/templates/$conf_template" > "$code_server_config_path"
 
-    # Сохраняем пароль для пользователя
-    local password_file="/home/$username/.code-server-password.txt"
-    echo "Initial code-server password for $username: $password" > "$password_file"
-    chown "$username:$username" "$password_file"
-    chmod 600 "$password_file"
-
-    cat > "$codeserver_config" << EOF
-password: $password_hash
-user-data-dir: /home/$username/.local/share/code-server
-extensions-dir: /home/$username/.local/share/code-server/extensions
-EOF
-    chown "$username:$username" "$codeserver_config"
-    chmod 600 "$codeserver_config"
+    chown "$username:$username" "$code_server_config"
+    chmod 600 "$code_server_config"
 
     # Reload systemd
     systemctl daemon-reload
@@ -102,7 +78,7 @@ EOF
     # Enable and start services
     sudo -u "$username" systemctl --user daemon-reload
     sudo -u "$username" systemctl --user enable --now \
-        "code-server@$username.service" 2>/dev/null || true
+        "code-server.service" 2>/dev/null || true
 
     echo "Services setup completed for $username"
 }
@@ -124,7 +100,7 @@ main() {
         [[ "$shell" == *"nologin"* ]] && continue
         [[ "$shell" == *"false"* ]] && continue
         # check if user excluded in file excluded_users
-        if grep -q "^$username$" "$EXCLUDED_USERS"; then
+        if [ -e "$EXCLUDED_USERS_DIR/$username" ]; then
             echo "Skipping excluded user: $username"
             continue
         fi
@@ -164,7 +140,7 @@ case "${1:-}" in
         echo "  $0              # Check and create missing configs"
         echo "  $0 --force      # Update all existing configs"
         echo "  $0 --user john  # Process only user 'john'"
-        exit 0
+        return 0
         ;;
     --force|-f)
         main true
@@ -172,13 +148,13 @@ case "${1:-}" in
     --user)
         if [ -z "$2" ]; then
             echo "Error: --user requires username"
-            exit 1
+            return 1
         fi
         username="$2"
         uid=$(id -u "$username" 2>/dev/null || echo "")
         if [ -z "$uid" ]; then
             echo "Error: User $username not found"
-            exit 1
+            return 1
         fi
         # Обработка только одного пользователя
         if check_user_configs_exist "$username" "$uid"; then

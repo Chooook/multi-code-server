@@ -25,9 +25,8 @@
 ### Основные компоненты:
 
 ```
-/etc/user-services/           # Конфигурация системы
+/etc/auto-code-server/           # Конфигурация системы
 ├── config                   # Основной конфиг
-├── ports.db                 # База портов пользователей
 ├── templates/               # Шаблоны конфигов
 └── scripts/                 # Скрипты управления
 
@@ -37,7 +36,7 @@
 └── user-code-server-set-password # Смена пароля
 
 /etc/systemd/user/           # Systemd юниты пользователей
-/etc/nginx/user-services/    # Конфиги nginx
+/etc/nginx/auto-code-server/    # Конфиги nginx
 ```
 
 ## 🚀 Быстрый старт
@@ -47,30 +46,30 @@
 ```bash
 # 1. Скачайте и запустите установщик
 git clone <repository>
-cd user-services-system
+cd auto-code-server-system
 sudo ./setup.sh
 
 # 2. Проверьте установку
-sudo /etc/user-services/scripts/status-all.sh
+sudo /etc/auto-code-server/scripts/status-all.sh
 
 # 3. Проверьте одного пользователя
-sudo /etc/user-services/scripts/show-logs.sh <username>
+sudo /etc/auto-code-server/scripts/show-logs.sh <username>
 ```
 
 ### Основные команды:
 
 ```bash
 # Статус всех пользователей
-sudo /etc/user-services/scripts/status-all.sh
+sudo /etc/auto-code-server/scripts/status-all.sh
 
 # Очистка пользователя
-sudo /etc/user-services/scripts/cleanup-user.sh <username>
+sudo /etc/auto-code-server/scripts/cleanup-user.sh <username>
 
 # Просмотр логов
-sudo /etc/user-services/scripts/show-logs.sh <username> [service]
+sudo /etc/auto-code-server/scripts/show-logs.sh <username> [service]
 
 # Ручной запуск настройки
-sudo /etc/user-services/scripts/create-user-services.sh
+sudo /etc/auto-code-server/scripts/create-auto-code-server.sh
 ```
 
 ## 🏗 Архитектура
@@ -90,10 +89,9 @@ sudo /etc/user-services/scripts/create-user-services.sh
 # Алгоритм:
 # 1. Базовый порт = BASE_PORT + (UID % 10000)
 # 2. Если занят → порт + 1
-# 3. Записывается в /etc/user-services/ports.db
 
 # Пример:
-UID 1001 → nginx порт: 11001, codeserver порт: 21001
+UID 1001 → nginx порт: 11001, code-server порт: 21001
 ```
 
 ### Systemd сервисы:
@@ -116,7 +114,7 @@ UID 1001 → nginx порт: 11001, codeserver порт: 21001
 ```bash
 # 1. Клонируйте репозиторий
 git clone <repository-url>
-cd user-services-system
+cd auto-code-server-system
 
 # 2. Запустите установщик
 chmod +x setup.sh
@@ -133,7 +131,7 @@ sudo ./setup.sh --quick
 sudo ./setup.sh --test
 
 # Проверка статуса
-sudo /etc/user-services/scripts/status-all.sh
+sudo /etc/auto-code-server/scripts/status-all.sh
 
 # Проверка nginx
 curl http://localhost:9999  # тестовый эндпоинт
@@ -141,21 +139,21 @@ curl http://localhost:9999  # тестовый эндпоинт
 
 ### Настройка конфигурации:
 
-Основной конфиг: `/etc/user-services/config`
+Основной конфиг: `/etc/auto-code-server/config`
 
 ```ini
 # Диапазоны портов
 NGINX_PROXY_PORT_MIN=10000
 NGINX_PROXY_PORT_MAX=19999
 NGINX_BASE_PORT=10000
-CODESERVER_BASE_PORT=20000
+code-server_BASE_PORT=20000
 
 # Таймаут бездействия (секунды)
-CODESERVER_IDLE_TIMEOUT=3600
+code-server_IDLE_TIMEOUT=3600
 
 # Директории
 SYSTEMD_USER_DIR=/etc/systemd/user
-NGINX_CONF_DIR=/etc/nginx/user-services
+NGINX_CONF_DIR=/etc/nginx/auto-code-server
 ```
 
 ## 👥 Управление пользователями
@@ -173,17 +171,14 @@ NGINX_CONF_DIR=/etc/nginx/user-services
 
 ```bash
 # Принудительная настройка всех пользователей
-sudo /etc/user-services/scripts/create-user-services.sh
+sudo /etc/auto-code-server/scripts/create-auto-code-server.sh
 
 # Настройка конкретного пользователя
-sudo /etc/user-services/scripts/create-user-services.sh --user <username>
+sudo /etc/auto-code-server/scripts/create-auto-code-server.sh --user <username>
 
 # Очистка пользователя
-sudo /etc/user-services/scripts/cleanup-user.sh <username>
-sudo /etc/user-services/scripts/cleanup-user.sh 1001  # по UID
-
-# Проверка портов
-cat /etc/user-services/ports.db
+sudo /etc/auto-code-server/scripts/cleanup-user.sh <username>
+sudo /etc/auto-code-server/scripts/cleanup-user.sh 1001  # по UID
 ```
 
 ### Добавление нового пользователя:
@@ -194,7 +189,7 @@ adduser newuser
 
 # 2. Автоматически (через 12 часов максимум)
 # Или вручную:
-sudo /etc/user-services/scripts/create-user-services.sh --user newuser
+sudo /etc/auto-code-server/scripts/create-auto-code-server.sh --user newuser
 
 # 3. Дайте пользователю начальный пароль
 sudo cat /home/newuser/.code-server-initial-password.txt
@@ -204,7 +199,7 @@ sudo cat /home/newuser/.code-server-initial-password.txt
 
 ```bash
 # 1. Очистите сервисы
-sudo /etc/user-services/scripts/cleanup-user.sh <username>
+sudo /etc/auto-code-server/scripts/cleanup-user.sh <username>
 
 # 2. Удалите пользователя
 deluser --remove-home <username>
@@ -216,10 +211,10 @@ deluser --remove-home <username>
 
 ```bash
 # Полный отчет
-sudo /etc/user-services/scripts/status-all.sh
+sudo /etc/auto-code-server/scripts/status-all.sh
 
 # Только активные пользователи
-sudo /etc/user-services/scripts/status-all.sh | grep -E "(✓|ACTIVE)"
+sudo /etc/auto-code-server/scripts/status-all.sh | grep -E "(✓|ACTIVE)"
 
 # Проверка портов
 ss -tuln | grep -E ":(1[0-9]{4}|2[0-9]{4})"
@@ -229,24 +224,24 @@ ss -tuln | grep -E ":(1[0-9]{4}|2[0-9]{4})"
 
 ```bash
 # Все логи пользователя
-sudo /etc/user-services/scripts/show-logs.sh <username>
+sudo /etc/auto-code-server/scripts/show-logs.sh <username>
 
 # Логи code-server
-sudo /etc/user-services/scripts/show-logs.sh <username> code-server
+sudo /etc/auto-code-server/scripts/show-logs.sh <username> code-server
 
 # Логи nginx
-sudo /etc/user-services/scripts/show-logs.sh <username> nginx
+sudo /etc/auto-code-server/scripts/show-logs.sh <username> nginx
 
 # Поиск ошибок
-sudo /etc/user-services/scripts/show-logs.sh <username> search "error"
+sudo /etc/auto-code-server/scripts/show-logs.sh <username> search "error"
 ```
 
 ### Systemd логи:
 
 ```bash
 # Логи глобального systemd
-journalctl -u user-services-setup.service
-journalctl -u user-services-setup.timer
+journalctl -u auto-code-server-setup.service
+journalctl -u auto-code-server-setup.timer
 
 # Логи пользовательских сервисов
 sudo -u <username> journalctl --user -u code-server.service
@@ -280,8 +275,8 @@ sudo snap install code-server --classic
 # Проверьте конфигурацию
 nginx -t
 
-# Проверьте включение user-services
-grep "include.*user-services" /etc/nginx/nginx.conf
+# Проверьте включение auto-code-server
+grep "include.*auto-code-server" /etc/nginx/nginx.conf
 
 # Перезапустите
 systemctl restart nginx
@@ -308,17 +303,15 @@ ss -tuln | grep :<порт>
 iptables -L -n | grep <порт>
 ufw status | grep <порт>
 
-# Перевыделите порты
-rm /etc/user-services/ports.db
-sudo /etc/user-services/scripts/create-user-services.sh
+sudo /etc/auto-code-server/scripts/create-auto-code-server.sh
 ```
 
 ### Диагностика:
 
 ```bash
 # Полная диагностика пользователя
-sudo /etc/user-services/scripts/status-all.sh | grep <username>
-sudo /etc/user-services/scripts/show-logs.sh <username> all
+sudo /etc/auto-code-server/scripts/status-all.sh | grep <username>
+sudo /etc/auto-code-server/scripts/show-logs.sh <username> all
 sudo -u <username> systemctl --user status
 
 # Проверка сокетов
@@ -362,7 +355,7 @@ ps aux | grep <username> | grep -E "(code-server|nginx)"
 
 4. **Ротация логов:**
    ```bash
-   # Добавьте в /etc/logrotate.d/nginx-user-services
+   # Добавьте в /etc/logrotate.d/nginx-auto-code-server
    /var/log/nginx/user-*.log {
        daily
        missingok
@@ -391,43 +384,41 @@ ps aux | grep <username> | grep -E "(code-server|nginx)"
 
 ```bash
 # Отредактируйте конфиг
-sudo nano /etc/user-services/config
+sudo nano /etc/auto-code-server/config
 
 # Измените:
 NGINX_PROXY_PORT_MIN=15000
 NGINX_PROXY_PORT_MAX=15999
 
-# Пересоздайте конфиги
-rm /etc/user-services/ports.db
-sudo /etc/user-services/scripts/create-user-services.sh
+sudo /etc/auto-code-server/scripts/create-auto-code-server.sh
 ```
 
 ### Изменение таймаута бездействия:
 
 ```bash
 # В конфиге
-CODESERVER_IDLE_TIMEOUT=1800  # 30 минут
+code-server_IDLE_TIMEOUT=1800  # 30 минут
 
 # В шаблоне templates/code-server.socket.tpl
 IdleTimeoutSec=1800
 
 # Примените изменения
-sudo /etc/user-services/scripts/create-user-services.sh
+sudo /etc/auto-code-server/scripts/create-auto-code-server.sh
 ```
 
 ### Добавление новых сервисов:
 
-1. Создайте шаблоны в `/etc/user-services/templates/`
-2. Добавьте логику в `create-user-services.sh`
+1. Создайте шаблоны в `/etc/auto-code-server/templates/`
+2. Добавьте логику в `create-auto-code-server.sh`
 3. Протестируйте на одном пользователе
 
 ### Резервное копирование:
 
 ```bash
 # Конфигурация системы
-sudo tar -czf user-services-backup-$(date +%Y%m%d).tar.gz \
-  /etc/user-services \
-  /etc/nginx/user-services \
+sudo tar -czf auto-code-server-backup-$(date +%Y%m%d).tar.gz \
+  /etc/auto-code-server \
+  /etc/nginx/auto-code-server \
   /etc/systemd/user/*.service \
   /etc/systemd/user/*.socket
 
@@ -448,7 +439,7 @@ A: Пользователь может сменить пароль сам: `user
    Или администратор может сбросить:
    ```bash
    sudo rm /home/<user>/.config/code-server/config.yaml
-   sudo /etc/user-services/scripts/create-user-services.sh --user <user>
+   sudo /etc/auto-code-server/scripts/create-auto-code-server.sh --user <user>
    ```
 
 ### Q: Как увеличить количество пользователей?
@@ -467,21 +458,21 @@ A: Проверьте:
 ### Q: Как отключить автоматическую настройку?
 A: 
    ```bash
-   systemctl disable --now user-services-setup.timer
+   systemctl disable --now auto-code-server-setup.timer
    ```
 
 ### Q: Пользователь жалуется на "Connection refused"
 A: Проверьте цепочку:
-   1. `sudo /etc/user-services/scripts/status-all.sh | grep <user>`
+   1. `sudo /etc/auto-code-server/scripts/status-all.sh | grep <user>`
    2. `curl -I http://localhost:<порт>`
-   3. `sudo /etc/user-services/scripts/show-logs.sh <user> nginx`
+   3. `sudo /etc/auto-code-server/scripts/show-logs.sh <user> nginx`
 
 ### Q: Как мигрировать на другой сервер?
 A:
-   1. Скопируйте `/etc/user-services/`
-   2. Скопируйте `/etc/nginx/user-services/`
+   1. Скопируйте `/etc/auto-code-server/`
+   2. Скопируйте `/etc/nginx/auto-code-server/`
    3. Скопируйте `/etc/systemd/user/*.service`
-   4. Запустите `create-user-services.sh`
+   4. Запустите `create-auto-code-server.sh`
 
 ## 📞 Поддержка
 
@@ -490,13 +481,13 @@ A:
 При обращении за помощью предоставьте:
 ```bash
 # Системная информация
-sudo /etc/user-services/scripts/status-all.sh
+sudo /etc/auto-code-server/scripts/status-all.sh
 
 # Логи проблемного пользователя
-sudo /etc/user-services/scripts/show-logs.sh <username> all 100
+sudo /etc/auto-code-server/scripts/show-logs.sh <username> all 100
 
 # Конфигурация
-grep -v "^#" /etc/user-services/config
+grep -v "^#" /etc/auto-code-server/config
 ```
 
 ### Полезные команды:
@@ -504,11 +495,11 @@ grep -v "^#" /etc/user-services/config
 ```bash
 # Перезапуск всей системы
 sudo systemctl restart nginx
-sudo /etc/user-services/scripts/create-user-services.sh
+sudo /etc/auto-code-server/scripts/create-auto-code-server.sh
 
 # Сброс одного пользователя
-sudo /etc/user-services/scripts/cleanup-user.sh <username>
-sudo /etc/user-services/scripts/create-user-services.sh --user <username>
+sudo /etc/auto-code-server/scripts/cleanup-user.sh <username>
+sudo /etc/auto-code-server/scripts/create-auto-code-server.sh --user <username>
 ```
 
 ---

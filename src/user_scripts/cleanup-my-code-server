@@ -1,0 +1,29 @@
+#!/bin/bash
+# Полная очистка конфигураций, данных code-server и остановка сервиса
+
+main() {
+    read -p "Are you sure you want to clean up code-server? This will stop the service. [y/N]: " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo "Cleaning up code-server data and configurations"
+
+        if systemctl --user daemon-reload 2>/dev/null; then
+            systemctl --user stop "code-server.service" 2>/dev/null || true
+
+            systemctl --user disable "code-server.service" 2>/dev/null || true
+        fi
+
+        rm -f "~/.config/systemd/user/code-server.service"
+
+        rm -f "~.user-auto-code-server-guide.md" 2>/dev/null || true
+
+         rm -rf "~.config/code-server" 2>/dev/null || true
+         rm -rf "~.local/share/code-server" 2>/dev/null || true
+
+        systemctl daemon-reload
+
+        echo "Cleanup completed"
+    fi
+}
+
+main "$@"

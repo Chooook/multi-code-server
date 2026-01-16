@@ -1,0 +1,4 @@
+bind-addr: "localhost:%CODE_SERVER_PORT%"
+password: "%PASSWORD%"
+user-data-dir: "/home/%UNAME%/.local/share/code-server"
+extensions-dir: "/home/%UNAME%/.local/share/code-server/extensions"

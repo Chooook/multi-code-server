@@ -1,0 +1,55 @@
+#!/bin/bash
+# Подбор свободного порта
+
+# Функция проверки занятости порта
+is_port_free() {
+    local port=$1
+    # Проверяем через ss (более быстрый)
+    if ss -tuln | grep -q ":$port\b"; then
+        return 1 # порт занят
+    fi
+    return 0 # порт свободен
+}
+
+# Функция поиска свободного порта
+find_free_port() {
+    local base_port=$1
+    local min_port=$2
+    local max_port=$3
+
+    # Ищем свободный порт
+    local port=$base_port
+    while [ $port -le $max_port ]; do
+        if is_port_free $port; then
+            echo $port
+            return 0
+        fi
+        port=$((port + 1))
+    done
+
+    # Если ничего не нашли
+    echo "Error: No free ports in range $min_port-$max_port" >&2
+    return 1
+}
+
+# Основная логика
+main() {
+    local base_port=$1
+    local min_port=$2
+    local max_port=$3
+    if [ -z "$base_port" ]; then
+        base_port=10000
+    fi
+    if [ -z "$min_port" ]; then
+        min_port=10000
+    fi
+    if [ -z "$max_port" ]; then
+        max_port=65535
+    fi
+
+    port=$(find_free_port $base_port $min_port $max_port)
+    sed -i "s|^bind-addr:.*$|bind-addr: localhost:$port|" "$CONFIG_FILE" # FIXME не в тему тут, вынести всё такое управление в единый файл
+    echo "$port"
+}
+
+main "$@"

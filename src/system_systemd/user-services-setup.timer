@@ -1,6 +1,6 @@
 [Unit]
-Description=Update user services every 12 hours
-Requires=user-services-setup.service
+Description=Update code servers every 12 hours
+Requires=code-servers-setup.service
 
 [Timer]
 OnBootSec=15min

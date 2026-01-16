@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=oneshot
-ExecStart=/etc/user-services/scripts/create-user-services.sh
+ExecStart=/etc/auto-code-server/scripts/create-code-servers.sh
 StandardOutput=journal
 StandardError=journal
 User=root

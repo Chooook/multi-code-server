@@ -1,0 +1,14 @@
+#!/bin/bash
+# или просто создавать отсюда с закрытыми правами
+
+EXCLUDED_USERS_DIR="/etc/auto-code-server/excluded_users"
+username=${whoami}
+userid=$(id -u $username)
+
+read -p "Are you sure you don't want to use code-server? [y/N]: " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo "Disabling auto code-server creation for user $username"
+    touch $EXCLUDED_USERS_DIR/$username
+    echo "Done"
+fi

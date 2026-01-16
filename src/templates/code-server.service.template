@@ -3,20 +3,16 @@ Description=Code Server for %i
 
 [Service]
 Type=simple
-User=%i
-Group=%i
 
 Environment="SHELL=/bin/bash"
 
 ExecStart=/usr/bin/code-server \
-  --bind-addr localhost:%CODESERVER_PORT% \
   --config /home/%i/.config/code-server/config.yaml \
   --auth password \
   --cert false
 
 Restart=always
 
-PrivateTmp=yes
 ProtectSystem=strict
 
 [Install]
