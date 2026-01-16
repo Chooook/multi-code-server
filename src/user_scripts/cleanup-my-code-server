@@ -11,21 +11,48 @@ main() {
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo "Cleaning up code-server data and configurations"
 
-        if systemctl --user daemon-reload 2>/dev/null; then
-            systemctl --user stop "code-server.service" 2>/dev/null || true
+        if sudo -u $username \
+                    XDG_RUNTIME_DIR="/run/user/$uid" \
+                    DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+                    systemctl --user daemon-reload 2>/dev/null; then
+            sudo -u $username \
+                XDG_RUNTIME_DIR="/run/user/$uid" \
+                DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+                systemctl --user stop "code-server.service" 2>/dev/null || true
 
-            systemctl --user disable "code-server.service" 2>/dev/null || true
+            sudo -u $username \
+                XDG_RUNTIME_DIR="/run/user/$uid" \
+                DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+                systemctl --user disable "code-server.service" 2>/dev/null || true
         fi
 
-        rm -f "/home/$username/.config/systemd/user/code-server.service"
-        rm -f "/home/$username/.config/systemd/user/default.target.wants/code-server.service"
+        sudo -u $username \
+            XDG_RUNTIME_DIR="/run/user/$uid" \
+            DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+            rm -f "/home/$username/.config/systemd/user/code-server.service"
+        sudo -u $username \
+            XDG_RUNTIME_DIR="/run/user/$uid" \
+            DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+            rm -f "/home/$username/.config/systemd/user/default.target.wants/code-server.service"
 
-        rm -f "/home/$username/.user-auto-code-server-guide.md" 2>/dev/null || true
+        sudo -u $username \
+            XDG_RUNTIME_DIR="/run/user/$uid" \
+            DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+            rm -f "/home/$username/.user-auto-code-server-guide.md" 2>/dev/null || true
 
-         rm -rf "/home/$username/.config/code-server" 2>/dev/null || true
-         rm -rf "/home/$username/.local/share/code-server" 2>/dev/null || true
+        sudo -u $username \
+            XDG_RUNTIME_DIR="/run/user/$uid" \
+            DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+            rm -rf "/home/$username/.config/code-server" 2>/dev/null || true
+        sudo -u $username \
+            XDG_RUNTIME_DIR="/run/user/$uid" \
+            DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+            rm -rf "/home/$username/.local/share/code-server" 2>/dev/null || true
 
-        systemctl daemon-reload
+        sudo -u $username \
+            XDG_RUNTIME_DIR="/run/user/$uid" \
+            DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+            systemctl daemon-reload
 
         echo "Cleanup completed"
     fi
