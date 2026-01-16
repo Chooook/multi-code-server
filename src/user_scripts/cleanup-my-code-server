@@ -6,6 +6,7 @@ main() {
     if [ -z "$username" ]; then
         username=${whoami}
     fi
+    local uid=$(id -u $username)
     read -p "Are you sure you want to clean up $username code-server? This will stop the service. [y/N]: " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
