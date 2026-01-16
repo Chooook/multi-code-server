@@ -1,11 +1,6 @@
 #!/bin/bash
+# FIXME fix script
 # Просмотр логов пользовательских сервисов
-
-CONFIG_FILE="/etc/user-services/config"
-[ -f "$CONFIG_FILE" ] && source "$CONFIG_FILE" || {
-    echo "Error: Config file not found: $CONFIG_FILE"
-    exit 1
-}
 
 # Функция показа логов пользователя
 show_user_logs() {
@@ -61,7 +56,7 @@ main() {
         echo "  $0 john                      # Show all logs for john (50 lines)"
         echo "  $0 john all 200              # Show all logs (200 lines)"
         echo "  $0 john search 'error'       # Search for 'error' in logs"
-        exit 1
+        return 1
     fi
 
     local username=$1
@@ -71,7 +66,7 @@ main() {
     if [ "$service" = "search" ]; then
         if [ -z "$param" ]; then
             echo "Error: Search term required for 'search' action"
-            exit 1
+            return 1
         fi
         search_logs "$username" "$param" 100
     else
@@ -82,7 +77,7 @@ main() {
 # Проверяем что запущено от root
 if [ "$EUID" -ne 0 ]; then
     echo "Error: This script must be run as root"
-    exit 1
+    return 1
 fi
 
 main "$@"
