@@ -2,6 +2,7 @@
 # Скрипт создания/обновления сервисов для пользователей
 
 EXCLUDED_USERS_DIR="/etc/auto-code-server/excluded_users"
+BIN_DIR="/usr/local/bin"
 
 # Функция проверки существования всех необходимых конфигов
 check_user_configs_exist() {
