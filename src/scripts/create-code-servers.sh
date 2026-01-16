@@ -79,10 +79,12 @@ setup_user_services() {
     chown "$username:$username" "$code_server_config_path"
     chmod 600 "$code_server_config_path"
 
-    sudo -u "$username" mkdir -p "/home/$username/.config/systemd/user/default.target.wants"
-    sudo -u "$username" ln -sf \
+    mkdir -p "/home/$username/.config/systemd/user/default.target.wants"
+    chown "$username:$username" "/home/$username/.config/systemd/user/default.target.wants"
+    ln -sf \
         "/home/$username/.config/systemd/user/code-server.service" \
         "/home/$username/.config/systemd/user/default.target.wants/code-server.service"
+    chown "$username:$username" "/home/$username/.config/systemd/user/default.target.wants/code-server.service"
 
     # Reload systemd
     systemctl daemon-reload
