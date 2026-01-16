@@ -126,7 +126,7 @@ create_directories() {
 
     # Устанавливаем правильные права
     chmod 755 "$ETC_DIR"
-    chmod 1777 "EXCLUDED_USERS_DIR"
+    chmod 1777 "$EXCLUDED_USERS_DIR"
 
     print_success "Директории созданы"
 }
