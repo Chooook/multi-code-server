@@ -18,6 +18,7 @@ main() {
         fi
 
         rm -f "/home/$username/.config/systemd/user/code-server.service"
+        rm -f "/home/$username/.config/systemd/user/default.target.wants/code-server.service"
 
         rm -f "/home/$username/.user-auto-code-server-guide.md" 2>/dev/null || true
 
