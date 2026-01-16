@@ -40,6 +40,10 @@ setup_user_services() {
     # Включаем лингеринг
     loginctl enable-linger "$username" 2>/dev/null || true
 
+    if [ -f /run/user/$uid ];
+        echo "User $username is not logged in yet. Skipping" && return 0;
+    fi
+
     # Создаём конфигурационные файлы из шаблонов
 
     # 1. Systemd service files
@@ -77,8 +81,6 @@ setup_user_services() {
     # Reload systemd
     systemctl daemon-reload
 
-    DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus"
-    XDG_RUNTIME_DIR="/run/user/$uid"
     # Enable and start services
     sudo -u "$username" \
         XDG_RUNTIME_DIR="/run/user/$uid" \
