@@ -79,6 +79,11 @@ setup_user_services() {
     chown "$username:$username" "$code_server_config_path"
     chmod 600 "$code_server_config_path"
 
+    sudo -u "$username" mkdir -p "/home/$username/.config/systemd/user/default.target.wants"
+    sudo -u "$username" ln -sf \
+        "/home/$username/.config/systemd/user/code-server.service" \
+        "/home/$username/.config/systemd/user/default.target.wants/code-server.service"
+
     # Reload systemd
     systemctl daemon-reload
 
@@ -91,7 +96,7 @@ setup_user_services() {
         XDG_RUNTIME_DIR="/run/user/$uid" \
         DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
         systemctl --user enable --now \
-        "code-server.service" 2>/dev/null || true
+        "code-server" 2>/dev/null || true
 
     echo "Services setup completed for $username"
 }
