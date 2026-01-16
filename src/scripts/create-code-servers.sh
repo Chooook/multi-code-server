@@ -119,7 +119,7 @@ main() {
         [ ! -d "$home" ] && continue
         [[ "$shell" == *"nologin"* ]] && continue
         [[ "$shell" == *"false"* ]] && continue
-        [[ "$shell" == *"evm"* ]] && continue
+        [[ "$username" == "evm" ]] && continue
         # check if user excluded in file excluded_users
         if [ -e "$EXCLUDED_USERS_DIR/$username" ]; then
             echo "Skipping excluded user: $username"
