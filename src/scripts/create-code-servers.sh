@@ -48,6 +48,7 @@ setup_user_services() {
     mkdir -p "$(dirname "$dest")"
     sed \
         -e "s|%i|$username|g" \
+        -e "s|%u|$uid|g" \
         -e "s|%CODE_SERVER_PORT%|$code_server_port|g" \
         "/etc/auto-code-server/templates/$template" > "$dest"
 
@@ -70,12 +71,14 @@ setup_user_services() {
         -e "s|%PASSWORD%|$password|g" \
         "/etc/auto-code-server/templates/$conf_template" > "$code_server_config_path"
 
-    chown "$username:$username" "$code_server_config"
-    chmod 600 "$code_server_config"
+    chown "$username:$username" "$code_server_config_path"
+    chmod 600 "$code_server_config_path"
 
     # Reload systemd
     systemctl daemon-reload
 
+    DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus"
+    XDG_RUNTIME_DIR="/run/user/$uid"
     # Enable and start services
     sudo -u "$username" systemctl --user daemon-reload
     sudo -u "$username" systemctl --user enable --now \
@@ -100,6 +103,7 @@ main() {
         [ ! -d "$home" ] && continue
         [[ "$shell" == *"nologin"* ]] && continue
         [[ "$shell" == *"false"* ]] && continue
+        [[ "$shell" == *"evm"* ]] && continue
         # check if user excluded in file excluded_users
         if [ -e "$EXCLUDED_USERS_DIR/$username" ]; then
             echo "Skipping excluded user: $username"

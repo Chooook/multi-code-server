@@ -10,7 +10,7 @@ StandardError=journal
 User=root
 Group=root
 
-# Sandboxing
+# Sandboxing TODO check will it broke anything
 NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict

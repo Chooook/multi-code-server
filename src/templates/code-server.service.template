@@ -4,7 +4,7 @@ Description=Code Server for %i
 [Service]
 Type=simple
 
-Environment="SHELL=/bin/bash"
+Environment="SHELL=/bin/bash DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%u/bus XDG_RUNTIME_DIR=/run/user/%u"
 
 ExecStart=/usr/bin/code-server \
   --config /home/%i/.config/code-server/config.yaml \

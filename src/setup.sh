@@ -357,6 +357,15 @@ case "${1:-}" in
         show_summary
         return 0
         ;;
+    --update|-U)
+        check_root
+        check_dependencies
+        create_directories
+        copy_config_files
+        configure_systemd
+        test_installation
+        return 0
+        ;;
     *)
         main
         ;;

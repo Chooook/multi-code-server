@@ -1,10 +1,12 @@
 #!/bin/bash
-# FIXME fix script
 # Просмотр статуса сервисов всех пользователей
 
 check_user_status() {
     local username=$1
     local uid=$2
+
+    DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus"
+    XDG_RUNTIME_DIR="/run/user/$uid"
 
     # Проверяем наличие конфигов (теперь с суффиксом .username)
     local has_systemd=""

@@ -2,7 +2,11 @@
 # Полная очистка конфигураций, данных code-server и остановка сервиса
 
 main() {
-    read -p "Are you sure you want to clean up code-server? This will stop the service. [y/N]: " -n 1 -r
+    username="$1"
+    if [ -z "$username" ]; then
+        username=${whoami}
+    fi
+    read -p "Are you sure you want to clean up $username code-server? This will stop the service. [y/N]: " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo "Cleaning up code-server data and configurations"
@@ -13,12 +17,12 @@ main() {
             systemctl --user disable "code-server.service" 2>/dev/null || true
         fi
 
-        rm -f "~/.config/systemd/user/code-server.service"
+        rm -f "/home/$username/.config/systemd/user/code-server.service"
 
-        rm -f "~.user-auto-code-server-guide.md" 2>/dev/null || true
+        rm -f "/home/$username/.user-auto-code-server-guide.md" 2>/dev/null || true
 
-         rm -rf "~.config/code-server" 2>/dev/null || true
-         rm -rf "~.local/share/code-server" 2>/dev/null || true
+         rm -rf "/home/$username/.config/code-server" 2>/dev/null || true
+         rm -rf "/home/$username/.local/share/code-server" 2>/dev/null || true
 
         systemctl daemon-reload
 
